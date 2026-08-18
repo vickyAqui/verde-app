@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: verde-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: dbDadosVerde
+    ports:
+      - "3306:3306"
+    volumes:
+      - verde-data:/var/lib/mysql
+      - ./dbDadosVerde.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: verde-backend
+    restart: unless-stopped
+    ports:
+      - "3333:3333"
+    environment:
+      - PORT=3333
+      - NODE_ENV=development
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=dbDadosVerde
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - JWT_SECRET=verde-dev-secret-key-2024
+      - JWT_EXPIRES_IN=7d
+      - CORS_ORIGIN=http://localhost:3000
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  verde-data:

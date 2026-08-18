@@ -35,5 +35,8 @@ Thumbs.db
 # Testing
 coverage/
 
+# Docker
+verde-data/
+
 # Misc
 *.pem

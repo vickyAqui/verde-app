@@ -83,10 +83,46 @@ Area ────1:N──> Denuncias
 ### Pré-requisitos
 
 - Node.js >= 18
-- MySQL >= 8
+- MySQL >= 8 (ou Docker)
 - Expo CLI (`npm install -g expo-cli`)
 
-### Backend
+---
+
+### Setup com Docker (Recomendado)
+
+O Docker sobe o backend + MySQL automaticamente, sem precisar instalar nada além do Docker.
+
+```bash
+# Copiar .env do backend
+cp backend/.env.example backend/.env
+
+# Subir tudo (MySQL + Backend + Migrations + Seeders)
+npm run setup
+
+# Ou passo a passo:
+npm run dev              # Sobe MySQL + Backend
+npm run migrate          # Rodar migrations (em outro terminal)
+npm run seed             # Rodar seeders (em outro terminal)
+```
+
+**Comandos Docker:**
+
+```bash
+npm run dev              # Subir tudo (backend + MySQL)
+npm run stop             # Parar tudo
+npm run logs             # Ver logs
+npm run db:shell         # Entrar no MySQL
+npm run reset            # Resetar banco (drop + recreate + seed)
+```
+
+Backend roda em `http://localhost:3333`
+MySQL roda em `localhost:3306` (usuário: `root`, senha: `root`)
+
+---
+
+### Setup Manual (sem Docker)
+
+#### Backend
 
 ```bash
 cd backend
@@ -113,7 +149,7 @@ npm run dev
 
 Servidor roda em `http://localhost:3333`
 
-### Mobile
+#### Mobile
 
 ```bash
 cd mobile
