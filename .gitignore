@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Backend
+backend/.env
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Mobile
+mobile/.expo/
+mobile/ios/
+mobile/android/
+mobile/web-build/
+
+# Build
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+
+# Misc
+*.pem
