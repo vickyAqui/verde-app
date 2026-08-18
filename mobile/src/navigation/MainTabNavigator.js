@@ -4,8 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from '../screens/home/HomeScreen';
 import AreasScreen from '../screens/areas/AreasScreen';
-import MapScreen from '../screens/areas/MapScreen';
 import NGOsScreen from '../screens/ngos/NGOsScreen';
+import ProjetosScreen from '../screens/projetos/ProjetosScreen';
+import DenunciasScreen from '../screens/denuncias/DenunciasScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
@@ -31,11 +32,14 @@ export default function MainTabNavigator() {
             case 'Areas':
               iconName = 'leaf';
               break;
-            case 'Map':
-              iconName = 'map';
-              break;
-            case 'NGOs':
+            case 'ONGs':
               iconName = 'people';
+              break;
+            case 'Projetos':
+              iconName = 'folder-open';
+              break;
+            case 'Denuncias':
+              iconName = 'alert-circle';
               break;
             case 'Profile':
               iconName = 'person';
@@ -47,8 +51,9 @@ export default function MainTabNavigator() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Areas" component={AreasScreen} />
-      <Tab.Screen name="Map" component={MapScreen} />
-      <Tab.Screen name="NGOs" component={NGOsScreen} />
+      <Tab.Screen name="ONGs" component={NGOsScreen} />
+      <Tab.Screen name="Projetos" component={ProjetosScreen} />
+      <Tab.Screen name="Denuncias" component={DenunciasScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

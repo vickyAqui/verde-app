@@ -1,23 +1,27 @@
-const User = require('./User');
+const Usuario = require('./Usuario');
+const Admin = require('./Admin');
+const UsuarioComum = require('./UsuarioComum');
 const Area = require('./Area');
-const NGO = require('./NGO');
-const Notification = require('./Notification');
-const Connection = require('./Connection');
+const Ongs = require('./Ongs');
+const Projeto = require('./Projeto');
+const Denuncias = require('./Denuncias');
 
-User.hasMany(Area, { foreignKey: 'reportedBy', as: 'reportedAreas' });
-Area.belongsTo(User, { foreignKey: 'reportedBy', as: 'reporter' });
+Usuario.hasOne(Admin, { foreignKey: 'idUsuario', as: 'admin' });
+Admin.belongsTo(Usuario, { foreignKey: 'idUsuario', as: 'usuario' });
 
-NGO.hasMany(Area, { foreignKey: 'ngoId', as: 'areas' });
-Area.belongsTo(NGO, { foreignKey: 'ngoId', as: 'ngo' });
+Usuario.hasOne(UsuarioComum, { foreignKey: 'idUsuario', as: 'comum' });
+UsuarioComum.belongsTo(Usuario, { foreignKey: 'idUsuario', as: 'usuario' });
 
-User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
-Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Usuario.hasOne(Ongs, { foreignKey: 'idUsuario', as: 'ong' });
+Ongs.belongsTo(Usuario, { foreignKey: 'idUsuario', as: 'usuario' });
 
-User.belongsToMany(NGO, { through: Connection, foreignKey: 'userId', as: 'connectedNGOs' });
-NGO.belongsToMany(User, { through: Connection, foreignKey: 'ngoId', as: 'connectedUsers' });
+Usuario.hasMany(Projeto, { foreignKey: 'idUsuario', as: 'projetos' });
+Projeto.belongsTo(Usuario, { foreignKey: 'idUsuario', as: 'usuario' });
 
-Connection.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-Connection.belongsTo(NGO, { foreignKey: 'ngoId', as: 'ngo' });
-Connection.belongsTo(Area, { foreignKey: 'areaId', as: 'area' });
+Usuario.hasMany(Denuncias, { foreignKey: 'idUsuario', as: 'denuncias' });
+Denuncias.belongsTo(Usuario, { foreignKey: 'idUsuario', as: 'usuario' });
 
-module.exports = { User, Area, NGO, Notification, Connection };
+Area.hasMany(Denuncias, { foreignKey: 'idArea', as: 'denuncias' });
+Denuncias.belongsTo(Area, { foreignKey: 'idArea', as: 'area' });
+
+module.exports = { Usuario, Admin, UsuarioComum, Area, Ongs, Projeto, Denuncias };

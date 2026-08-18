@@ -1,23 +1,32 @@
-const User = require('../models/User');
+const { Usuario, UsuarioComum, Admin } = require('../models');
 
 const getProfile = async (req, res) => {
-  return res.json({ user: req.user });
+  try {
+    const usuario = await Usuario.findByPk(req.user.idUsuario, {
+      include: [
+        { model: Admin, as: 'admin' },
+        { model: UsuarioComum, as: 'comum' },
+      ],
+    });
+
+    return res.json({ usuario });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao buscar perfil' });
+  }
 };
 
 const updateProfile = async (req, res) => {
   try {
-    const allowed = ['name', 'phone', 'avatar', 'latitude', 'longitude'];
+    const { nome, email } = req.body;
     const updates = {};
+    if (nome) updates.nome = nome;
+    if (email) updates.email = email;
 
-    allowed.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
-      }
-    });
+    await Usuario.update(updates, { where: { idUsuario: req.user.idUsuario } });
 
-    await req.user.update(updates);
+    const usuario = await Usuario.findByPk(req.user.idUsuario);
 
-    return res.json({ user: req.user });
+    return res.json({ usuario });
   } catch (err) {
     return res.status(500).json({ error: 'Erro ao atualizar perfil' });
   }
@@ -25,7 +34,7 @@ const updateProfile = async (req, res) => {
 
 const deleteAccount = async (req, res) => {
   try {
-    await req.user.destroy();
+    await Usuario.destroy({ where: { idUsuario: req.user.idUsuario } });
     return res.json({ message: 'Conta removida com sucesso' });
   } catch (err) {
     return res.status(500).json({ error: 'Erro ao remover conta' });

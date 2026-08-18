@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { Usuario, Admin } = require('../models');
 
 const adminAuthMiddleware = async (req, res, next) => {
   const header = req.headers.authorization;
@@ -12,13 +12,18 @@ const adminAuthMiddleware = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findByPk(decoded.id);
+    const usuario = await Usuario.findByPk(decoded.id);
 
-    if (!user || user.role !== 'admin') {
+    if (!usuario) {
+      return res.status(401).json({ error: 'Usuário não encontrado' });
+    }
+
+    const admin = await Admin.findOne({ where: { idUsuario: usuario.idUsuario } });
+    if (!admin) {
       return res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
     }
 
-    req.user = user;
+    req.user = usuario;
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Token inválido' });

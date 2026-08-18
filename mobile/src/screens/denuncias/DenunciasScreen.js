@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
 import api from '../../api';
 
-export default function AreasScreen() {
-  const [areas, setAreas] = useState([]);
+export default function DenunciasScreen() {
+  const [denuncias, setDenuncias] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadAreas();
+    loadDenuncias();
   }, []);
 
-  const loadAreas = async () => {
+  const loadDenuncias = async () => {
     try {
-      const response = await api.get('/areas');
-      setAreas(response.data.areas);
+      const response = await api.get('/denuncias');
+      setDenuncias(response.data.denuncias);
     } catch (err) {
       console.error(err);
     } finally {
@@ -22,40 +22,42 @@ export default function AreasScreen() {
   };
 
   const getStatusColor = (status) => {
-    if (!status) return '#6B7280';
-    if (status === 'identificada') return '#F59E0B';
-    if (status === 'em tratamento') return '#3B82F6';
-    if (status === 'reforestada') return '#10B981';
+    if (status === 'aberta') return '#F59E0B';
+    if (status === 'em análise') return '#3B82F6';
+    if (status === 'resolvida') return '#10B981';
     return '#6B7280';
   };
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item.bairro}</Text>
-        <View style={[styles.badge, { backgroundColor: getStatusColor(item.statusArea) }]}>
-          <Text style={styles.badgeText}>{item.statusArea || 'Sem status'}</Text>
+        <Text style={styles.cardTitle}>{item.titulo}</Text>
+        <View style={[styles.badge, { backgroundColor: getStatusColor(item.statusDenuncia) }]}>
+          <Text style={styles.badgeText}>{item.statusDenuncia}</Text>
         </View>
       </View>
-      <Text style={styles.cardInfo}>{item.rua}</Text>
-      <Text style={styles.cardCity}>{item.cidade}</Text>
+      <Text style={styles.cardInfo}>
+        {item.area?.cidade} - {item.area?.bairro}, {item.area?.rua}
+      </Text>
+      <Text style={styles.cardDescription}>{item.descricao || 'Sem descrição'}</Text>
+      <Text style={styles.cardDate}>{item.dataDenuncia}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Áreas Não Verdes</Text>
+        <Text style={styles.title}>Denúncias</Text>
       </View>
       {loading ? (
         <Text style={styles.loadingText}>Carregando...</Text>
       ) : (
         <FlatList
-          data={areas}
-          keyExtractor={(item) => String(item.idArea)}
+          data={denuncias}
+          keyExtractor={(item) => String(item.idDenuncias)}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma área encontrada</Text>}
+          ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma denúncia encontrada</Text>}
         />
       )}
     </View>
@@ -82,8 +84,9 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#1F2937', flex: 1 },
   badge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   badgeText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-  cardInfo: { color: '#6B7280', marginTop: 8, fontSize: 14 },
-  cardCity: { color: '#9CA3AF', marginTop: 4, fontSize: 12 },
+  cardInfo: { color: '#2D6A4F', marginTop: 8, fontSize: 14, fontWeight: '600' },
+  cardDescription: { color: '#6B7280', marginTop: 4, fontSize: 14 },
+  cardDate: { color: '#9CA3AF', marginTop: 8, fontSize: 12 },
   loadingText: { textAlign: 'center', color: '#6B7280', marginTop: 40 },
   emptyText: { textAlign: 'center', color: '#9CA3AF', marginTop: 40 },
 });

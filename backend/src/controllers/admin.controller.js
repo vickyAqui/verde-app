@@ -1,24 +1,26 @@
-const User = require('../models/User');
-const Area = require('../models/Area');
-const NGO = require('../models/NGO');
+const { Usuario, Admin, UsuarioComum, Area, Ongs, Projeto, Denuncias } = require('../models');
 
 const dashboardStats = async (req, res) => {
   try {
-    const totalUsers = await User.count();
+    const totalUsuarios = await Usuario.count();
+    const totalAdmins = await Admin.count();
+    const totalComuns = await UsuarioComum.count();
     const totalAreas = await Area.count();
-    const pendingNGOs = await NGO.count({ where: { status: 'pending' } });
-    const approvedNGOs = await NGO.count({ where: { status: 'approved' } });
-    const areasInProgress = await Area.count({ where: { status: 'in_progress' } });
-    const areasReforested = await Area.count({ where: { status: 'reforested' } });
+    const totalONGs = await Ongs.count();
+    const totalProjetos = await Projeto.count();
+    const totalDenuncias = await Denuncias.count();
+    const denunciasAbertas = await Denuncias.count({ where: { statusDenuncia: 'aberta' } });
 
     return res.json({
       stats: {
-        totalUsers,
+        totalUsuarios,
+        totalAdmins,
+        totalComuns,
         totalAreas,
-        pendingNGOs,
-        approvedNGOs,
-        areasInProgress,
-        areasReforested,
+        totalONGs,
+        totalProjetos,
+        totalDenuncias,
+        denunciasAbertas,
       },
     });
   } catch (err) {
@@ -26,14 +28,16 @@ const dashboardStats = async (req, res) => {
   }
 };
 
-const listUsers = async (req, res) => {
+const listUsuarios = async (req, res) => {
   try {
-    const users = await User.findAll({
-      attributes: { exclude: ['password'] },
-      order: [['createdAt', 'DESC']],
+    const usuarios = await Usuario.findAll({
+      include: [
+        { model: Admin, as: 'admin' },
+        { model: UsuarioComum, as: 'comum' },
+      ],
     });
 
-    return res.json({ users });
+    return res.json({ usuarios });
   } catch (err) {
     return res.status(500).json({ error: 'Erro ao listar usuários' });
   }
@@ -41,46 +45,37 @@ const listUsers = async (req, res) => {
 
 const listAreas = async (req, res) => {
   try {
-    const areas = await Area.findAll({ order: [['createdAt', 'DESC']] });
+    const areas = await Area.findAll({ order: [['idArea', 'DESC']] });
     return res.json({ areas });
   } catch (err) {
     return res.status(500).json({ error: 'Erro ao listar áreas' });
   }
 };
 
-const listNGOs = async (req, res) => {
+const listONGs = async (req, res) => {
   try {
-    const ngos = await NGO.findAll({ order: [['createdAt', 'DESC']] });
-    return res.json({ ngos });
+    const ongs = await Ongs.findAll({
+      include: [{ model: Usuario, as: 'usuario', attributes: ['idUsuario', 'nome', 'email'] }],
+    });
+    return res.json({ ongs });
   } catch (err) {
     return res.status(500).json({ error: 'Erro ao listar ONGs' });
   }
 };
 
-const approveNGO = async (req, res) => {
+const listDenuncias = async (req, res) => {
   try {
-    const ngo = await NGO.findByPk(req.params.id);
-    if (!ngo) return res.status(404).json({ error: 'ONG não encontrada' });
-
-    await ngo.update({ status: 'approved' });
-
-    return res.json({ ngo });
+    const denuncias = await Denuncias.findAll({
+      include: [
+        { model: Usuario, as: 'usuario', attributes: ['idUsuario', 'nome'] },
+        { model: Area, as: 'area', attributes: ['idArea', 'cidade', 'bairro', 'rua'] },
+      ],
+      order: [['idDenuncias', 'DESC']],
+    });
+    return res.json({ denuncias });
   } catch (err) {
-    return res.status(500).json({ error: 'Erro ao aprovar ONG' });
+    return res.status(500).json({ error: 'Erro ao listar denúncias' });
   }
 };
 
-const rejectNGO = async (req, res) => {
-  try {
-    const ngo = await NGO.findByPk(req.params.id);
-    if (!ngo) return res.status(404).json({ error: 'ONG não encontrada' });
-
-    await ngo.update({ status: 'rejected' });
-
-    return res.json({ ngo });
-  } catch (err) {
-    return res.status(500).json({ error: 'Erro ao rejeitar ONG' });
-  }
-};
-
-module.exports = { dashboardStats, listUsers, listAreas, listNGOs, approveNGO, rejectNGO };
+module.exports = { dashboardStats, listUsuarios, listAreas, listONGs, listDenuncias };

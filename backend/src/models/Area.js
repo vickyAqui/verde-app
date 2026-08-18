@@ -2,54 +2,30 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/sequelize');
 
 const Area = sequelize.define('Area', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+  idArea: {
+    type: DataTypes.INTEGER,
     primaryKey: true,
+    autoIncrement: true,
   },
-  name: {
-    type: DataTypes.STRING(200),
+  cidade: {
+    type: DataTypes.STRING(30),
     allowNull: false,
   },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  latitude: {
-    type: DataTypes.DECIMAL(10, 8),
+  bairro: {
+    type: DataTypes.STRING(30),
     allowNull: false,
   },
-  longitude: {
-    type: DataTypes.DECIMAL(11, 8),
+  rua: {
+    type: DataTypes.STRING(35),
     allowNull: false,
   },
-  areaSize: {
-    type: DataTypes.FLOAT,
-    allowNull: true,
-    comment: 'Tamanho em hectares',
-  },
-  status: {
-    type: DataTypes.ENUM('identified', 'in_progress', 'reforested'),
-    defaultValue: 'identified',
-  },
-  vegetationType: {
-    type: DataTypes.ENUM('forest', 'savanna', 'mangrove', 'other'),
-    allowNull: true,
-  },
-  imageUrl: {
-    type: DataTypes.STRING(500),
-    allowNull: true,
-  },
-  reportedBy: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  ngoId: {
-    type: DataTypes.UUID,
-    allowNull: true,
+  statusArea: {
+    type: DataTypes.STRING(20),
+    defaultValue: 'identificada',
   },
 }, {
-  tableName: 'areas',
+  tableName: 'tbl_Area',
+  timestamps: false,
 });
 
 module.exports = Area;

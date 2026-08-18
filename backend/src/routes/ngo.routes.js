@@ -1,11 +1,11 @@
 const express = require('express');
-const { listNGOs, getNGO, connectWithNGO } = require('../controllers/ngo.controller');
+const { listONGs, getONG, createONG } = require('../controllers/ngo.controller');
 const { authMiddleware } = require('../middlewares/auth');
 
 const router = express.Router();
 
-router.get('/', authMiddleware, listNGOs);
-router.get('/:id', authMiddleware, getNGO);
-router.post('/:id/connect', authMiddleware, connectWithNGO);
+router.get('/', authMiddleware, listONGs);
+router.get('/:id', authMiddleware, getONG);
+router.post('/', authMiddleware, createONG);
 
 module.exports = router;

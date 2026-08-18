@@ -1,69 +1,56 @@
-const NGO = require('../models/NGO');
-const Connection = require('../models/Connection');
-const Notification = require('../models/Notification');
+const { Ongs, Usuario } = require('../models');
 
-const listNGOs = async (req, res) => {
+const listONGs = async (req, res) => {
   try {
-    const ngos = await NGO.findAll({
-      where: { status: 'approved' },
-      order: [['name', 'ASC']],
+    const { regiao } = req.query;
+
+    const where = {};
+    if (regiao) where.regiao = regiao;
+
+    const ongs = await Ongs.findAll({
+      where,
+      include: [{ model: Usuario, as: 'usuario', attributes: ['idUsuario', 'nome', 'email'] }],
+      order: [['idOngs', 'DESC']],
     });
 
-    return res.json({ ngos });
+    return res.json({ ongs });
   } catch (err) {
     return res.status(500).json({ error: 'Erro ao listar ONGs' });
   }
 };
 
-const getNGO = async (req, res) => {
+const getONG = async (req, res) => {
   try {
-    const ngo = await NGO.findByPk(req.params.id);
+    const ong = await Ongs.findByPk(req.params.id, {
+      include: [{ model: Usuario, as: 'usuario', attributes: ['idUsuario', 'nome', 'email'] }],
+    });
 
-    if (!ngo) {
+    if (!ong) {
       return res.status(404).json({ error: 'ONG não encontrada' });
     }
 
-    return res.json({ ngo });
+    return res.json({ ong });
   } catch (err) {
     return res.status(500).json({ error: 'Erro ao buscar ONG' });
   }
 };
 
-const connectWithNGO = async (req, res) => {
+const createONG = async (req, res) => {
   try {
-    const { message } = req.body;
-    const ngo = await NGO.findByPk(req.params.id);
+    const { regiao, cnpj, telefone, descricao } = req.body;
 
-    if (!ngo) {
-      return res.status(404).json({ error: 'ONG não encontrada' });
-    }
-
-    const existing = await Connection.findOne({
-      where: { userId: req.user.id, ngoId: ngo.id },
+    const ong = await Ongs.create({
+      idUsuario: req.user.idUsuario,
+      regiao,
+      cnpj,
+      telefone,
+      descricao,
     });
 
-    if (existing) {
-      return res.status(409).json({ error: 'Conexão já estabelecida' });
-    }
-
-    const connection = await Connection.create({
-      userId: req.user.id,
-      ngoId: ngo.id,
-      message,
-    });
-
-    await Notification.create({
-      userId: req.user.id,
-      title: 'Conexão solicitada',
-      message: `Sua conexão com ${ngo.name} foi enviada.`,
-      type: 'ngo_connection',
-      data: { connectionId: connection.id, ngoId: ngo.id },
-    });
-
-    return res.status(201).json({ connection });
+    return res.status(201).json({ ong });
   } catch (err) {
-    return res.status(500).json({ error: 'Erro ao conectar com ONG' });
+    return res.status(500).json({ error: 'Erro ao criar ONG' });
   }
 };
 
-module.exports = { listNGOs, getNGO, connectWithNGO };
+module.exports = { listONGs, getONG, createONG };

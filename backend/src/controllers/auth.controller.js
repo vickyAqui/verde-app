@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { Usuario, UsuarioComum, Admin } = require('../models');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
@@ -7,65 +7,56 @@ const generateToken = (id) => {
 
 const register = async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { nome, email, senha, cpf, dataNasc } = req.body;
 
-    const existing = await User.findOne({ where: { email } });
+    const existing = await Usuario.findOne({ where: { email } });
     if (existing) {
       return res.status(409).json({ error: 'Email já cadastrado' });
     }
 
-    const user = await User.create({ name, email, password, phone });
-    const token = generateToken(user.id);
+    const usuario = await Usuario.create({ nome, email, senha });
 
-    return res.status(201).json({ user, token });
+    if (cpf) {
+      await UsuarioComum.create({ idUsuario: usuario.idUsuario, cpf, dataNasc });
+    }
+
+    const token = generateToken(usuario.idUsuario);
+
+    return res.status(201).json({ usuario, token });
   } catch (err) {
+    console.error(err);
     return res.status(500).json({ error: 'Erro ao criar usuário' });
   }
 };
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, senha } = req.body;
 
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
+    const usuario = await Usuario.findOne({ where: { email } });
+    if (!usuario) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
-    const valid = await user.checkPassword(password);
+    const valid = await usuario.checkSenha(senha);
     if (!valid) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
-    const token = generateToken(user.id);
+    const admin = await Admin.findOne({ where: { idUsuario: usuario.idUsuario } });
+    const comum = await UsuarioComum.findOne({ where: { idUsuario: usuario.idUsuario } });
 
-    return res.json({ user, token });
+    const token = generateToken(usuario.idUsuario);
+
+    return res.json({
+      usuario,
+      tipo: admin ? 'admin' : 'comum',
+      token,
+    });
   } catch (err) {
+    console.error(err);
     return res.status(500).json({ error: 'Erro ao fazer login' });
   }
 };
 
-const forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-    const user = await User.findOne({ where: { email } });
-
-    if (!user) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
-    }
-
-    return res.json({ message: 'Email de recuperação enviado' });
-  } catch (err) {
-    return res.status(500).json({ error: 'Erro ao processar solicitação' });
-  }
-};
-
-const resetPassword = async (req, res) => {
-  try {
-    return res.json({ message: 'Senha redefinida com sucesso' });
-  } catch (err) {
-    return res.status(500).json({ error: 'Erro ao redefinir senha' });
-  }
-};
-
-module.exports = { register, login, forgotPassword, resetPassword };
+module.exports = { register, login };
