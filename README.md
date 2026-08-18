@@ -90,66 +90,129 @@ Area ────1:N──> Denuncias
 
 ### Setup com Docker (Recomendado)
 
-O Docker sobe o backend + MySQL automaticamente, sem precisar instalar nada além do Docker.
+O Docker cuida de tudo: sobe o MySQL, o backend, cria o banco, roda as migrations e seeders. O time não precisa ter MySQL instalado na máquina.
+
+#### Primeira vez
 
 ```bash
-# Copiar .env do backend
+# 1. Clonar o repositório
+git clone https://github.com/vickyAqui/verde-app.git
+cd verde-app
+
+# 2. Copiar o .env
 cp backend/.env.example backend/.env
 
-# Subir tudo (MySQL + Backend + Migrations + Seeders)
+# 3. Subir tudo de uma vez
 npm run setup
-
-# Ou passo a passo:
-npm run dev              # Sobe MySQL + Backend
-npm run migrate          # Rodar migrations (em outro terminal)
-npm run seed             # Rodar seeders (em outro terminal)
 ```
 
-**Comandos Docker:**
+Esse comando:
+1. Sobe o container do MySQL (porta 3306)
+2. Sobe o container do Backend (porta 3333)
+3. Roda as migrations (cria as tabelas)
+4. Roda os seeders (popula com dados de teste)
+
+Pronto. A API já está rodando em `http://localhost:3333`.
+
+#### Dia a dia
 
 ```bash
-npm run dev              # Subir tudo (backend + MySQL)
-npm run stop             # Parar tudo
-npm run logs             # Ver logs
-npm run db:shell         # Entrar no MySQL
-npm run reset            # Resetar banco (drop + recreate + seed)
+# Iniciar o ambiente (MySQL + Backend)
+npm run dev
+
+# Em outro terminal, quando precisar:
+npm run migrate          # Rodar migrations
+npm run seed             # Rodar seeders
+
+# Parar tudo
+npm run stop
 ```
 
-Backend roda em `http://localhost:3333`
-MySQL roda em `localhost:3306` (usuário: `root`, senha: `root`)
+O Docker tem **hot reload**: qualquer alteração nos arquivos do `backend/src/` reinicia o servidor automaticamente. Não precisa parar e subir de novo.
 
----
+#### Comandos de controle
 
-### Setup Manual (sem Docker)
+| Comando | O que faz |
+|---------|-----------|
+| `npm run dev` | Sobe MySQL + Backend |
+| `npm run stop` | Para todos os containers |
+| `npm run logs` | Ver logs do backend em tempo real |
+| `npm run db:shell` | Entrar no MySQL direto pelo terminal |
+| `npm run migrate` | Rodar migrations |
+| `npm run seed` | Rodar seeders (dados de teste) |
+| `npm run reset` | Apagar tudo e recomeçar do zero |
 
-#### Backend
+#### Fluxo de trabalho
+
+```
+Terminal 1                    Terminal 2
+──────────                    ──────────
+npm run dev                   npm run migrate
+(watch os logs)               npm run seed
+```
+
+1. **Terminal 1:** Roda `npm run dev` — sobe os containers e fica exibindo os logs
+2. **Terminal 2:** Roda `npm run migrate` e `npm run seed` — prepara o banco
+3. A partir daí, é só codar. O backend reinicia sozinho quando você salva um arquivo
+
+#### Portas
+
+| Serviço | Porta | URL |
+|---------|-------|-----|
+| Backend | 3333 | `http://localhost:3333` |
+| MySQL | 3306 | `localhost:3306` |
+
+#### Credenciais do MySQL (Docker)
+
+| Campo | Valor |
+|-------|-------|
+| Host | `localhost` |
+| Porta | `3306` |
+| Usuário | `root` |
+| Senha | `root` |
+| Banco | `dbDadosVerde` |
+
+#### Criando um novo migration
+
+Quando precisar criar uma nova migration:
+
+```bash
+# Criar migration (no backend/)
+npx sequelize-cli migration:generate --name nome-da-migration
+
+# Rodar migration
+npm run migrate
+```
+
+#### Resetando o banco
+
+Se estragar algo ou quiser recomeçar:
+
+```bash
+npm run reset
+```
+
+Isso apaga o banco, recria tudo e popula com os dados de teste.
+
+#### Sem Docker?
+
+Se preferir rodar sem Docker (com MySQL instalado na máquina):
 
 ```bash
 cd backend
-
-# Instalar dependências
-npm install
-
-# Criar banco de dados
-mysql -u root -e "CREATE DATABASE dbDadosVerde"
-
-# Configurar variáveis de ambiente
 cp .env.example .env
-# Editar .env com suas credenciais do MySQL
+# Editar .env com suas credenciais do MySQL local
 
-# Rodar migrations
+npm install
+mysql -u root -e "CREATE DATABASE dbDadosVerde"
 npm run migrate
-
-# Rodar seeders (dados de teste)
 npm run seed
-
-# Iniciar servidor
 npm run dev
 ```
 
-Servidor roda em `http://localhost:3333`
+---
 
-#### Mobile
+### Mobile
 
 ```bash
 cd mobile
@@ -162,6 +225,8 @@ npx expo start
 ```
 
 Scanear o QR Code com o Expo Go (iOS/Android).
+
+> **Nota:** O mobile se conecta ao backend em `http://localhost:3333`. Se estiver usando Docker, o backend já está rodando. Se estiver rodando manualmente, certifique-se de que o backend está ativo antes de abrir o app.
 
 ---
 
