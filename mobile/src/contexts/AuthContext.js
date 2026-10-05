@@ -47,7 +47,7 @@ export function AuthProvider({ children }) {
   // Backend espera { email, senha } (não "password")
   const signIn = async (email, senha) => {
     try {
-      const response = await api.post('/auth/login', { email, senha });
+      const response = await api.post('/auth/login/', { email, senha });
       const { usuario, token, tipo: tipoValue } = response.data;
 
       await persist(usuario, token, tipoValue);

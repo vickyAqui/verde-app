@@ -1,13 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput,
+  View, Text, FlatList, TouchableOpacity, TextInput,
   RefreshControl, Modal, Alert, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import api from '../../api';
 import { AppHeader, LoadingView, ErrorView, EmptyView, StatusBadge } from '../../components/ui';
 import { COLORS, DEN_LABELS, denColor } from '../../theme';
+import { styles } from './DenunciasStyles.js';
 
 const FILTERS = [
   { key: 'all', label: 'Todas' },
@@ -33,6 +35,30 @@ export default function DenunciasScreen({ navigation }) {
   const [areaId, setAreaId] = useState(null);
   const [areaQuery, setAreaQuery] = useState('');
   const [sending, setSending] = useState(false);
+  const [locating, setLocating] = useState(false);
+
+  const useMyLocation = async () => {
+    try {
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão negada', 'Ative a localização para usar sua posição.');
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const [place] = await Location.reverseGeocodeAsync({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+      const texto = place?.street || place?.district || place?.subregion || '';
+      if (texto) setAreaQuery(texto);
+      else Alert.alert('Ops', 'Não foi possível identificar o endereço.');
+    } catch {
+      Alert.alert('Erro', 'Não foi possível obter sua localização.');
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -183,14 +209,21 @@ export default function DenunciasScreen({ navigation }) {
             </View>
 
             <Text style={styles.label}>Área *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Buscar rua ou bairro..."
-              placeholderTextColor={COLORS.faint}
-              value={areaQuery}
-              onChangeText={setAreaQuery}
-              autoCapitalize="none"
-            />
+            <View style={styles.areaInputRow}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Buscar rua ou bairro..."
+                placeholderTextColor={COLORS.faint}
+                value={areaQuery}
+                onChangeText={setAreaQuery}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity style={styles.locBtn} onPress={useMyLocation} disabled={locating}>
+                {locating
+                  ? <ActivityIndicator size="small" color={COLORS.primary} />
+                  : <Ionicons name="locate" size={20} color={COLORS.primary} />}
+              </TouchableOpacity>
+            </View>
             {areaOptions.map((a) => (
               <TouchableOpacity
                 key={a.idArea}
@@ -236,62 +269,3 @@ export default function DenunciasScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  fab: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,.22)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  chips: { flexDirection: 'row', gap: 8, padding: 12, paddingHorizontal: 16 },
-  chip: { backgroundColor: '#E5E7EB', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
-  chipActive: { backgroundColor: COLORS.primary },
-  chipText: { fontSize: 13, fontWeight: '600', color: COLORS.muted },
-  chipTextActive: { color: '#fff' },
-  list: { padding: 16, paddingTop: 4, paddingBottom: 32 },
-  card: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
-  },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  cardTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.text, flex: 1 },
-  cardInfo: { color: COLORS.primary, marginTop: 6, fontSize: 14, fontWeight: '600' },
-  cardDesc: { color: COLORS.muted, marginTop: 4, fontSize: 14 },
-  cardDate: { color: COLORS.faint, marginTop: 8, fontSize: 12 },
-  cta: { marginTop: 14, backgroundColor: COLORS.primary, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 12 },
-  ctaText: { color: '#fff', fontWeight: 'bold' },
-  modalRoot: { flex: 1, backgroundColor: COLORS.bg, paddingTop: 50 },
-  modalHead: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingBottom: 12,
-  },
-  modalTitle: { fontSize: 22, fontWeight: 'bold', color: COLORS.text },
-  modalBody: { padding: 20, paddingBottom: 48 },
-  label: { fontSize: 13, fontWeight: '700', color: COLORS.muted, marginBottom: 8, marginTop: 12 },
-  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  cat: {
-    borderWidth: 1, borderColor: COLORS.border, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#fff',
-  },
-  catActive: { borderColor: COLORS.primary, backgroundColor: '#E3F2E9' },
-  catText: { fontSize: 13, color: COLORS.text, fontWeight: '600' },
-  catTextActive: { color: COLORS.primary },
-  input: {
-    backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB',
-    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
-    fontSize: 15, color: COLORS.text,
-  },
-  textArea: { minHeight: 80, textAlignVertical: 'top' },
-  areaOpt: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#fff', borderRadius: 12, padding: 12, marginTop: 8,
-    borderWidth: 1, borderColor: '#E5E7EB',
-  },
-  areaOptActive: { borderColor: COLORS.primary },
-  areaOptTitle: { fontSize: 14, fontWeight: '700', color: COLORS.text },
-  areaOptSub: { fontSize: 12, color: COLORS.muted },
-  send: { backgroundColor: COLORS.primary, borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 20 },
-  sendDisabled: { opacity: 0.7 },
-  sendText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-});
