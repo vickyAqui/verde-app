@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation } from "react-router";
-import { AlertTriangle, CheckCircle2, MapPin, Scissors, TreePine, TriangleAlert, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, LocateFixed, MapPin, Scissors, TreePine, TriangleAlert, XCircle } from "lucide-react";
 import { api, type Area, type Denuncia } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useFetch } from "../../lib/use-fetch";
@@ -45,8 +45,44 @@ export function ReportsScreen() {
   const [description, setDescription] = useState("");
   const [foto, setFoto] = useState("");
   const [busy, setBusy] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [protocol, setProtocol] = useState<number | null>(null);
+
+  function useMyLocation() {
+    setError(null);
+    if (!navigator.geolocation) {
+      setError("Seu navegador não suporta geolocalização.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+          );
+          const data = await res.json();
+          const a = data.address ?? {};
+          const rua = a.road || a.pedestrian || a.street || "";
+          const bairro = a.suburb || a.neighbourhood || a.city_district || a.city || "";
+          const texto = [rua, bairro].filter(Boolean).join(", ");
+          if (texto) setAddress(texto);
+          else setError("Não foi possível identificar o endereço.");
+        } catch {
+          setError("Não foi possível identificar o endereço.");
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => {
+        setLocating(false);
+        setError("Não foi possível obter sua localização. Permita o acesso à localização.");
+      },
+      { enableHighAccuracy: true, timeout: 12000 },
+    );
+  }
 
   const areas = useFetch<Area[]>(() => api.get("/areas").then((r) => r.areas));
   const denuncias = useFetch<Denuncia[]>(() => api.get("/denuncias", { idUsuario: String(user?.idUsuario ?? "") }).then((r) => r.denuncias).catch(() => []), [user?.idUsuario]);
@@ -196,6 +232,15 @@ export function ReportsScreen() {
                   placeholder="Ex.: Rua Iguaçu, 340 — Santa Etelvina"
                   className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
                 />
+                <button
+                  type="button"
+                  onClick={useMyLocation}
+                  disabled={locating}
+                  title="Usar minha localização"
+                  className="shrink-0 text-primary disabled:opacity-50"
+                >
+                  {locating ? <Loader2 size={16} className="animate-spin" /> : <LocateFixed size={16} />}
+                </button>
               </div>
             </label>
 
