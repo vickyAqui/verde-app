@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "+Verde",
+    "slug": "verde",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/e138d335-4a7d-42b2-9a22-dbd645bed234"
+    },
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#2D6A4F"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.verde.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#2D6A4F"
+      },
+      "package": "com.verde.app",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O +Verde usa sua localização para mostrar as áreas demarcadas próximas de você."
+        }
+      ],
+      "expo-image-picker",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e138d335-4a7d-42b2-9a22-dbd645bed234"
+      }
+    },
+    "owner": "vickyaqui"
+  }
+}

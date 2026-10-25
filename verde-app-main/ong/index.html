@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>+Verde | Painel Ong</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Login -->
+  <div id="view-login" class="login-view hidden">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-icon">+</div>
+        <h1>+Verde</h1>
+        <p>Painel Ong</p>
+      </div>
+      <form id="login-form">
+        <div class="field">
+          <label for="login-email">E-mail</label>
+          <input type="email" id="login-email" placeholder="ong@verde.com" required />
+        </div>
+        <div class="field">
+          <label for="login-senha">Senha</label>
+          <input type="password" id="login-senha" placeholder="123456" required />
+        </div>
+        <p id="login-error" class="form-error hidden"></p>
+        <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+          Entrar
+        </button>
+      </form>
+      <p class="login-hint">Credenciais de teste: maria@verde.com / 123456</p>
+      <button type="button" id="cadastro-ong-btn" class="btn btn-outline btn-block">
+        Cadastre sua ONG
+      </button>
+    </div>
+  </div>
+
+  <!-- Cadastro de ONG -->
+  <div id="view-cadastro-ong" class="login-view hidden">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-icon">+</div>
+        <h1>+Verde</h1>
+        <p>Cadastro de ONG</p>
+      </div>
+      <button type="button" id="voltar-login-btn" class="btn btn-outline btn-block">
+        ← Voltar ao login
+      </button>
+      <form id="cadastro-ong-form">
+        <div class="field">
+          <label for="cad-nome">Nome da ONG</label>
+          <input type="text" id="cad-nome" placeholder="Instituto Verde" required />
+        </div>
+        <div class="field">
+          <label for="cad-email">E-mail</label>
+          <input type="email" id="cad-email" placeholder="ong@email.com" required />
+        </div>
+        <div class="field">
+          <label for="cad-senha">Senha</label>
+          <input type="password" id="cad-senha" placeholder="Mínimo 6 caracteres" required />
+        </div>
+        <div class="field">
+          <label for="cad-cnpj">CNPJ</label>
+          <input type="text" id="cad-cnpj" placeholder="00.000.000/0000-00" required />
+        </div>
+        <div class="field">
+          <label for="cad-telefone">Telefone</label>
+          <input type="tel" id="cad-telefone" placeholder="(11) 99999-9999" required />
+        </div>
+        <div class="field">
+          <label for="cad-regiao">Região de atuação</label>
+          <input type="text" id="cad-regiao" placeholder="Ex.: Cidade Tiradentes" required />
+        </div>
+        <div class="field">
+          <label for="cad-descricao">Descrição</label>
+          <textarea id="cad-descricao" rows="4" placeholder="Descreva a ONG e seu trabalho..." required></textarea>
+        </div>
+        <p id="cadastro-error" class="form-error hidden"></p>
+        <button type="submit" class="btn btn-primary btn-block" id="cadastro-ong-submit">
+          Cadastrar ONG
+        </button>
+      </form>
+      <p id="cadastro-sucesso" class="login-hint hidden" style="color: #15803d;">
+        Solicitação enviada com sucesso! Aguarde a aprovação da administração.
+      </p>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="view-app" class="app-view hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon">+</span>
+        <span>+Verde</span>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-link active" data-view="dashboard">Dashboard</button>
+        <button class="nav-link" data-view="usuarios">Meus dados</button>
+        <button class="nav-link" data-view="campanhas">Denúncias</button>
+        <button class="nav-link" data-view="projetos">Projetos</button>
+      </nav>
+      <button id="logout-btn" class="btn btn-outline btn-block">Sair</button>
+    </aside>
+
+    <main class="content">
+      <header class="content-header">
+        <h2 id="page-title">Dashboard</h2>
+      </header>
+
+      <!-- Dashboard -->
+      <section id="view-dashboard" class="page active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">Denúncias em aberto</span>
+            <span class="stat-value" id="stat-abertas">-</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Projetos da ONG</span>
+            <span class="stat-value" id="stat-projetos">-</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Áreas mapeadas</span>
+            <span class="stat-value" id="stat-areas">-</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">ONGs parceiras</span>
+            <span class="stat-value" id="stat-ongs">-</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Membros da ONG</span>
+            <span class="stat-value" id="stat-membros">-</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Meus dados -->
+      <section id="view-usuarios" class="page">
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Perfil</th>
+              </tr>
+            </thead>
+            <tbody id="usuarios-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Denúncias -->
+      <section id="view-campanhas" class="page">
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Status</th>
+                <th>Área</th>
+                <th>Autor</th>
+                <th>Data</th>
+                <th>Descrição</th>
+              </tr>
+            </thead>
+            <tbody id="denuncias-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Projetos -->
+      <section id="view-projetos" class="page">
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>ID ONGs</th>
+                <th>Objetivo</th>
+                <th>Descrição</th>
+                <th>Percentual concluído</th>
+              </tr>
+            </thead>
+            <tbody id="projetos-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
