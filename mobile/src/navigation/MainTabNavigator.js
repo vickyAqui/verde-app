@@ -9,6 +9,7 @@ import NGOsScreen from '../screens/ngos/NGOsScreen';
 import ProjetosScreen from '../screens/projetos/ProjetosScreen';
 import DenunciasScreen from '../screens/denuncias/DenunciasScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import EducationScreen from '../screens/educacao/EducationScreen';
 
 import { COLORS } from '../theme';
 
@@ -21,6 +22,7 @@ const ICONS = {
   ONGs: 'people',
   Projetos: 'folder-open',
   Denuncias: 'alert-circle',
+  Educacao: 'book',
   Profile: 'person',
 };
 
@@ -44,6 +46,7 @@ export default function MainTabNavigator() {
       <Tab.Screen name="Denuncias" component={DenunciasScreen} options={{ title: 'Denúncias' }} />
       <Tab.Screen name="ONGs" component={NGOsScreen} options={{ title: 'ONGs' }} />
       <Tab.Screen name="Projetos" component={ProjetosScreen} />
+      <Tab.Screen name="Educacao" component={EducationScreen} options={{ title: 'Educação' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Perfil' }} />
     </Tab.Navigator>
   );
