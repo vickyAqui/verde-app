@@ -290,7 +290,7 @@ export default function NGOsScreen() {
     if ((projetos.data ?? []).length === 0) {
       return (
         <EmptyState
-          icon="sprout-outline"
+          icon="leaf-outline"
           title="Nenhum projeto incluído ainda"
           hint="Acompanhe iniciativas das ONGs parceiras."
         />
@@ -453,7 +453,7 @@ export default function NGOsScreen() {
             {!!createError && (
               <View style={styles.errorBox}>
                 <Ionicons
-                  name="alert-triangle"
+                  name="warning"
                   size={15}
                   color={COLORS.error}
                   style={{ marginTop: 1 }}

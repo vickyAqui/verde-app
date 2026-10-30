@@ -338,7 +338,7 @@ export default function MapScreen({ navigation }) {
       {!!locError && (
         <View style={[styles.banner, styles.bannerError]}>
           <Ionicons
-            name="alert-triangle"
+            name="warning"
             size={13}
             color={COLORS.error}
           />

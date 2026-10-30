@@ -171,7 +171,7 @@ export default function HomeScreen({ navigation }) {
                 activeOpacity={0.9}
                 onPress={() => navigation.navigate('Denunciar')}
               >
-                <Ionicons name="alert-triangle" size={16} color="#0E4C33" />
+                <Ionicons name="warning" size={16} color="#0E4C33" />
                 <Text style={styles.heroBtnText}>Denunciar agora</Text>
               </TouchableOpacity>
             </LinearGradient>
@@ -179,13 +179,13 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.statsRow}>
               <MiniStat icon="leaf" label="Áreas" value={numFmt(areaList.length)} />
               <MiniStat
-                icon="alert-triangle"
+                icon="warning"
                 label="Abertas"
                 value={numFmt(abertas.length)}
               />
               <MiniStat icon="people" label="ONGs" value={numFmt(ongList.length)} />
               <MiniStat
-                icon="sprout"
+                icon="leaf"
                 label="Projetos"
                 value={numFmt(projList.length)}
               />
@@ -210,7 +210,7 @@ export default function HomeScreen({ navigation }) {
                 {deficit > 0 && (
                   <View style={[styles.chip, styles.deficitChip]}>
                     <Ionicons
-                      name="alert-triangle"
+                      name="warning"
                       size={10}
                       color={COLORS.white}
                     />

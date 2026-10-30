@@ -26,7 +26,7 @@ import { styles } from './ProfileStyle';
 
 const SETTINGS = [
   {
-    icon: 'alert-triangle-outline',
+    icon: 'warning-outline',
     label: 'Notificações',
     sub: 'Alertas de denúncias e mutirões',
   },

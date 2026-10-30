@@ -218,7 +218,7 @@ export default function NGOsCreateScreen({ navigation }) {
         {!!error && (
           <View style={styles.errorBox}>
             <Ionicons
-              name="alert-triangle"
+              name="warning"
               size={15}
               color={COLORS.error}
               style={{ marginTop: 1 }}

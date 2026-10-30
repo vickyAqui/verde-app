@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo } from 'react';
-import { StyleSheet } from 'react-native';
 
 import { CT_CENTER, raioOf } from '../../theme';
 
@@ -170,6 +169,3 @@ const styles = {
     display: 'block',
   },
 };
-
-const sheet = StyleSheet.create({});
-export { sheet };

@@ -59,7 +59,7 @@ function VerdeTabBar({ state, navigation }) {
                     focused && styles.centerBtnActive,
                   ]}
                 >
-                  <Ionicons name="alert-triangle" size={22} color={COLORS.white} />
+                  <Ionicons name="warning" size={22} color={COLORS.white} />
                 </View>
                 <Text style={[styles.label, focused && styles.labelActive]}>
                   {cfg.label}

@@ -528,14 +528,14 @@ export default function AdminScreen({ navigation }) {
                   {
                     l: 'Denúncias',
                     v: dashboard.data.totalDenuncias,
-                    icon: 'alert-triangle-outline',
+                    icon: 'warning-outline',
                     color: COLORS.error,
                     bg: COLORS.errorSoft,
                   },
                   {
                     l: 'Projetos',
                     v: dashboard.data.totalProjetos,
-                    icon: 'sprout-outline',
+                    icon: 'leaf-outline',
                     color: COLORS.success,
                     bg: COLORS.successSoft,
                   },

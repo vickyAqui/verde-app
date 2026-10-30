@@ -25,7 +25,7 @@ import { styles } from './DenunciarStyle';
 const CATEGORIES = [
   { key: 'sem-arvores', label: 'Local sem árvores', icon: 'leaf' },
   { key: 'corte-irregular', label: 'Corte irregular', icon: 'close-circle-outline' },
-  { key: 'poda-inadequada', label: 'Poda inadequada', icon: 'scissors-outline' },
+  { key: 'poda-inadequada', label: 'Poda inadequada', icon: 'cut-outline' },
   { key: 'area-degradada', label: 'Área degradada', icon: 'warning-outline' },
 ];
 
@@ -375,7 +375,7 @@ export default function DenunciarScreen({ navigation }) {
             {!!error && (
               <View style={styles.errorBox}>
                 <Ionicons
-                  name="alert-triangle"
+                  name="warning"
                   size={15}
                   color={COLORS.error}
                   style={{ marginTop: 1 }}
@@ -409,7 +409,7 @@ export default function DenunciarScreen({ navigation }) {
               <Loading label="Carregando suas denúncias…" />
             ) : myReports.length === 0 ? (
               <EmptyState
-                icon="inbox-outline"
+                icon="file-tray-outline"
                 title="Nenhuma denúncia ainda"
                 hint="Suas denúncias vão aparecer aqui com o status de andamento."
               />
