@@ -1,219 +1,498 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import MapView, { Marker, Circle, Polygon, PROVIDER_DEFAULT } from 'react-native-maps';
-import * as Location from 'expo-location';
-import { useFocusEffect, useRoute } from '@react-navigation/native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import api from '../../api';
-import { COLORS, CT_CENTER, areaColor, AREA_LABELS, raioOf, parsePoligono, fmtAreaM2 } from '../../theme';
-import {styles} from './MapStyle.js';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const FILTERS = [
-  { key: 'all', label: 'Todas' },
+import api from '../../api';
+import { useFetch } from '../../hooks/useFetch';
+import { getCurrentCoords } from '../../utils/location';
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorNote,
+  Loading,
+  SearchField,
+  StatusBadge,
+} from '../../components/ui';
+import {
+  AREA_STATUS,
+  COLORS,
+  DEN_STATUS,
+  areaColor,
+  fmtAreaM2,
+  fmtDist,
+  haversineM,
+  numFmt,
+  parsePoligono,
+  raioOf,
+} from '../../theme';
+import { styles } from './MapStyle';
+import MapCanvas from './MapCanvas';
+
+const AREA_FILTERS = [
+  { key: 'all', label: 'Todos' },
   { key: 'identificada', label: 'Déficit' },
-  { key: 'em tratamento', label: 'Em trat.' },
-  { key: 'reflorestada', label: 'Reflor.' },
+  { key: 'em tratamento', label: 'Em tratamento' },
+  { key: 'reflorestada', label: 'Reflorestadas' },
 ];
 
+const DEN_FILTERS = [
+  { key: 'all', label: 'Todas' },
+  { key: 'aberta', label: 'Abertas' },
+  { key: 'em tratamento', label: 'Em tratamento' },
+  { key: 'resolvido', label: 'Resolvidas' },
+];
+
+const DEN_COLOR = '#C9731D';
+
+function toCoord(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 export default function MapScreen({ navigation }) {
-  const route = useRoute();
+  const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
-  const [areas, setAreas] = useState([]);
-  const [denuncias, setDenuncias] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  const [tab, setTab] = useState('areas');
   const [filter, setFilter] = useState('all');
+  const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
-  const [userLoc, setUserLoc] = useState(null);
+  const [userPos, setUserPos] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [locError, setLocError] = useState(null);
+  const [fitSignal, setFitSignal] = useState(0);
 
-  const load = useCallback(async () => {
-    try {
-      const [a, d] = await Promise.all([api.get('/areas'), api.get('/denuncias')]);
-      setAreas(a.data.areas ?? []);
-      setDenuncias(d.data.denuncias ?? []);
-    } catch {
-      // mantém dados anteriores; mapa não trava sem rede
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useFocusEffect(useCallback(() => { load(); }, [load]));
-
-  // Deep-link vindo da lista: { areaId }
-  useEffect(() => {
-    const id = route.params?.areaId;
-    if (!id || areas.length === 0) return;
-    const found = areas.find((a) => a.idArea === id);
-    if (found?.latitude != null && found?.longitude != null) {
-      setSelected({ kind: 'area', ref: found });
-      mapRef.current?.animateToRegion(
-        { latitude: found.latitude, longitude: found.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 },
-        600,
-      );
-    }
-    navigation.setParams({ areaId: undefined });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route.params?.areaId, areas]);
-
-  const locate = useCallback(async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-      setUserLoc(coords);
-      mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.05, longitudeDelta: 0.05 }, 600);
-    } catch {
-      // sem localização: segue no centro padrão
-    }
-  }, []);
-
-  const visible = useMemo(
-    () => areas.filter((a) => (filter === 'all' ? true : a.statusArea === filter)),
-    [areas, filter],
+  const areas = useFetch(() => api.get('/areas').then((r) => r.areas ?? []));
+  const denuncias = useFetch(() =>
+    api.get('/denuncias').then((r) => r.denuncias ?? []),
   );
 
-  const mapped = useMemo(
-    () => visible.filter((a) => a.latitude != null && a.longitude != null),
-    [visible],
+  const areaList = areas.data ?? [];
+  const denList = denuncias.data ?? [];
+  const loading = areas.loading || denuncias.loading;
+  const error = areas.error || denuncias.error;
+
+  const denCountByArea = useMemo(() => {
+    const map = new Map();
+    for (const d of denList) {
+      map.set(d.idArea, (map.get(d.idArea) ?? 0) + 1);
+    }
+    return map;
+  }, [denList]);
+
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+
+    if (tab === 'areas') {
+      return areaList
+        .filter((a) => (filter === 'all' ? true : a.statusArea === filter))
+        .filter(
+          (a) =>
+            !q ||
+            (a.rua || '').toLowerCase().includes(q) ||
+            (a.bairro || '').toLowerCase().includes(q) ||
+            (a.cidade || '').toLowerCase().includes(q),
+        )
+        .map((a) => ({
+          key: `a-${a.idArea}`,
+          kind: 'area',
+          id: a.idArea,
+          title: a.rua || 'Área sem nome',
+          sub: `${a.bairro || 'Cidade Tiradentes'} · ${a.cidade || 'São Paulo'}`,
+          status: a.statusArea,
+          color: areaColor(a.statusArea),
+          lat: toCoord(a.latitude),
+          lng: toCoord(a.longitude),
+          raio: typeof a.raio === 'number' ? a.raio : null,
+          poligono: parsePoligono(a.poligono),
+          denunciasCount: denCountByArea.get(a.idArea) ?? 0,
+        }));
+    }
+
+    return denList
+      .filter((d) =>
+        filter === 'all' ? true : d.statusDenuncia === filter,
+      )
+      .filter(
+        (d) =>
+          !q ||
+          (d.titulo || '').toLowerCase().includes(q) ||
+          (d.area?.rua || '').toLowerCase().includes(q),
+      )
+      .map((d) => ({
+        key: `d-${d.idDenuncia}`,
+        kind: 'denuncia',
+        id: d.idDenuncia,
+        title: d.titulo,
+        sub: `${d.area?.rua || d.area?.bairro || 'Cidade Tiradentes'} · ${d.dataDenuncia}`,
+        status: d.statusDenuncia,
+        color: DEN_COLOR,
+        lat: toCoord(d.area?.latitude),
+        lng: toCoord(d.area?.longitude),
+        raio: typeof d.area?.raio === 'number' ? d.area.raio : null,
+        poligono: parsePoligono(d.area?.poligono),
+      }));
+  }, [tab, filter, query, areaList, denList, denCountByArea]);
+
+  const sortedRows = useMemo(() => {
+    const list = [...rows];
+    if (userPos) {
+      list.sort((a, b) => {
+        const da =
+          a.lat !== null && a.lng !== null
+            ? haversineM(userPos.lat, userPos.lng, a.lat, a.lng)
+            : Infinity;
+        const db =
+          b.lat !== null && b.lng !== null
+            ? haversineM(userPos.lat, userPos.lng, b.lat, b.lng)
+            : Infinity;
+        return da - db;
+      });
+    }
+    return list;
+  }, [rows, userPos]);
+
+  const markers = useMemo(
+    () => sortedRows.filter((r) => r.lat !== null && r.lng !== null),
+    [sortedRows],
   );
 
-  const denCount = useMemo(() => {
-    const m = new Map();
-    for (const d of denuncias) m.set(d.idArea, (m.get(d.idArea) ?? 0) + 1);
-    return m;
-  }, [denuncias]);
+  const selectedRow = useMemo(
+    () => sortedRows.find((r) => r.key === selected) ?? null,
+    [sortedRows, selected],
+  );
 
-  const fitAll = () => {
-    if (mapped.length === 0) return;
-    mapRef.current?.fitToCoordinates(
-      mapped.map((a) => ({ latitude: a.latitude, longitude: a.longitude })),
-      { edgePadding: { top: 60, right: 60, bottom: 120, left: 60 }, animated: true },
-    );
+  const unmapped = sortedRows.length - markers.length;
+
+  const changeTab = (next) => {
+    setTab(next);
+    setFilter('all');
+    setQuery('');
+    setSelected(null);
   };
 
-  const selArea = selected?.kind === 'area' ? selected.ref : null;
+  const locate = useCallback(async () => {
+    setLocError(null);
+    setLocating(true);
+    try {
+      const coords = await getCurrentCoords();
+      setUserPos({ lat: coords.latitude, lng: coords.longitude });
+      setFitSignal((s) => s + 1);
+    } catch (e) {
+      setUserPos(null);
+      setLocError(e?.message || 'Não foi possível obter sua localização.');
+    } finally {
+      setLocating(false);
+    }
+  }, []);
+
+  const fitAll = () => {
+    if (markers.length === 0) return;
+    setFitSignal((s) => s + 1);
+  };
+
+  const goToReport = () => {
+    if (!selectedRow) return;
+    if (selectedRow.kind === 'area') {
+      navigation.navigate('Denunciar', { address: selectedRow.title });
+    } else {
+      navigation.navigate('Denunciar', { denunciaId: selectedRow.id });
+    }
+  };
 
   return (
     <View style={styles.root}>
-      <View style={styles.mapWrap}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          provider={PROVIDER_DEFAULT}
-          initialRegion={{ ...CT_CENTER, latitudeDelta: 0.09, longitudeDelta: 0.09 }}
-          showsUserLocation
-          showsMyLocationButton={false}
-        >
-          {mapped.map((a) => {
-            const color = areaColor(a.statusArea);
-            const poly = parsePoligono(a.poligono);
-            const raio = raioOf(a.statusArea, a.raio);
-            const isSel = selArea?.idArea === a.idArea;
-            return (
-              <React.Fragment key={a.idArea}>
-                {poly ? (
-                  <Polygon
-                    coordinates={poly}
-                    strokeColor={color}
-                    strokeWidth={isSel ? 3 : 2}
-                    fillColor={`${color}55`}
-                    onPress={() => setSelected({ kind: 'area', ref: a })}
-                  />
-                ) : (
-                  <Circle
-                    center={{ latitude: a.latitude, longitude: a.longitude }}
-                    radius={raio}
-                    strokeColor={color}
-                    strokeWidth={isSel ? 3 : 2}
-                    fillColor={`${color}44`}
-                    lineDashPattern={[6, 4]}
-                    onPress={() => setSelected({ kind: 'area', ref: a })}
-                  />
-                )}
-                <Marker
-                  coordinate={{ latitude: a.latitude, longitude: a.longitude }}
-                  onPress={() => setSelected({ kind: 'area', ref: a })}
-                >
-                  <View style={[styles.pin, { backgroundColor: color, borderWidth: isSel ? 4 : 3 }]}>
-                    <Ionicons name="leaf" size={12} color="#fff" />
-                  </View>
-                </Marker>
-              </React.Fragment>
-            );
-          })}
-        </MapView>
-
-        <View style={styles.topBar}>
-          <View style={styles.chips}>
-            {FILTERS.map((f) => (
-              <TouchableOpacity
-                key={f.key}
-                style={[styles.chip, filter === f.key && styles.chipActive]}
-                onPress={() => setFilter(f.key)}
-              >
-                <Text style={[styles.chipText, filter === f.key && styles.chipTextActive]}>{f.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.sideBtns}>
-          <TouchableOpacity style={styles.sideBtn} onPress={locate}>
-            <Ionicons name="locate" size={20} color={COLORS.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.sideBtn} onPress={fitAll}>
-            <Ionicons name="expand" size={20} color={COLORS.primary} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.legend}>
-          <LegendDot color={areaColor('identificada')} label="Déficit" />
-          <LegendDot color={areaColor('em tratamento')} label="Em trat." />
-          <LegendDot color={areaColor('reflorestada')} label="Reflor." />
-          <Text style={styles.legendCount}>{mapped.length} demarcadas</Text>
-        </View>
-
-        {loading && (
-          <View style={styles.loadingPill}>
-            <ActivityIndicator size="small" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Carregando áreas...</Text>
-          </View>
-        )}
+      <View
+        style={[
+          styles.header,
+          { paddingTop: Math.max(insets.top, 12) + 8 },
+        ]}
+      >
+        <Text style={styles.eyebrow}>Cidade Tiradentes · zona leste</Text>
+        <Text style={styles.title}>Mapa Ambiental</Text>
+        <SearchField
+          value={query}
+          onChangeText={setQuery}
+          placeholder={
+            tab === 'areas' ? 'Buscar rua ou bairro…' : 'Buscar denúncia…'
+          }
+        />
       </View>
 
-      {selArea ? (
-        <View style={styles.sheet}>
-          <View style={[styles.sheetDot, { backgroundColor: areaColor(selArea.statusArea) }]} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sheetTitle} numberOfLines={1}>{selArea.rua}</Text>
-            <Text style={styles.sheetSub} numberOfLines={1}>
-              {AREA_LABELS[selArea.statusArea] ?? selArea.statusArea} ·{' '}
-              {selArea.poligono ? 'polígono' : fmtAreaM2(raioOf(selArea.statusArea, selArea.raio))} ·{' '}
-              {denCount.get(selArea.idArea) ?? 0} denúncias
-            </Text>
-          </View>
+      <View style={styles.filterArea}>
+        <View style={styles.layers}>
+          {[
+            ['areas', `${numFmt(areaList.length)} áreas`],
+            ['denuncias', `${numFmt(denList.length)} denúncias`],
+          ].map(([key, label]) => (
+            <TouchableOpacity
+              key={key}
+              style={[styles.layerBtn, tab === key && styles.layerActive]}
+              onPress={() => changeTab(key)}
+              activeOpacity={0.85}
+            >
+              <Text
+                style={[
+                  styles.layerText,
+                  tab === key && styles.layerTextActive,
+                ]}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chips}
+        >
+          {(tab === 'areas' ? AREA_FILTERS : DEN_FILTERS).map((f) => (
+            <TouchableOpacity
+              key={f.key}
+              style={[styles.chip, filter === f.key && styles.chipActive]}
+              onPress={() => setFilter(f.key)}
+              activeOpacity={0.85}
+            >
+              <Text
+                style={[
+                  styles.chipText,
+                  filter === f.key && styles.chipTextActive,
+                ]}
+              >
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      <View style={styles.mapWrap}>
+        <MapCanvas
+          rows={markers}
+          selectedKey={selected}
+          onSelect={setSelected}
+          userPos={userPos}
+          mapRef={mapRef}
+          fitSignal={fitSignal}
+        />
+
+        <View style={styles.ctrlColumn}>
           <TouchableOpacity
-            style={styles.sheetBtn}
-            onPress={() => navigation.navigate('Denuncias', { areaId: selArea.idArea })}
+            style={styles.ctrlBtn}
+            onPress={locate}
+            disabled={locating}
+            activeOpacity={0.85}
           >
-            <Text style={styles.sheetBtnText}>Denunciar</Text>
+            <Ionicons
+              name="navigate"
+              size={18}
+              color={locating ? COLORS.faint : COLORS.primary}
+            />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setSelected(null)} hitSlop={12}>
-            <Ionicons name="close" size={20} color={COLORS.muted} />
+          <TouchableOpacity
+            style={[styles.ctrlBtn, markers.length === 0 && { opacity: 0.5 }]}
+            onPress={fitAll}
+            disabled={markers.length === 0}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="expand" size={18} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
-      ) : (
-        <View style={styles.hint}>
-          <Ionicons name="hand-left-outline" size={16} color={COLORS.muted} />
-          <Text style={styles.hintText}>Toque numa área demarcada para ver detalhes</Text>
+
+        {userPos && (
+          <View style={styles.userPill}>
+            <View style={styles.userDot} />
+            <Text style={styles.userPillText}>Você está aqui</Text>
+          </View>
+        )}
+
+        <View style={styles.legend} pointerEvents="none">
+          <Text style={styles.legendTitle}>Demarcação</Text>
+          <LegendItem color={areaColor('identificada')} label="Déficit" />
+          <LegendItem
+            color={areaColor('em tratamento')}
+            label="Em tratamento"
+          />
+          <LegendItem color={areaColor('reflorestada')} label="Reflorestada" />
+        </View>
+
+        <View style={styles.countPill} pointerEvents="none">
+          <Text style={styles.countPillText}>
+            {numFmt(markers.length)} demarcada
+            {markers.length === 1 ? '' : 's'}
+          </Text>
+        </View>
+      </View>
+
+      {!!locError && (
+        <View style={[styles.banner, styles.bannerError]}>
+          <Ionicons
+            name="alert-triangle"
+            size={13}
+            color={COLORS.error}
+          />
+          <Text style={[styles.bannerText, { color: COLORS.error }]}>
+            {locError}
+          </Text>
         </View>
       )}
+
+      {unmapped > 0 && !loading && (
+        <View style={[styles.banner, styles.bannerWarn]}>
+          <Ionicons name="location" size={13} color={COLORS.warning} />
+          <Text style={[styles.bannerText, { color: COLORS.warning }]}>
+            {numFmt(unmapped)} registro
+            {unmapped === 1 ? '' : 's'} sem coordenadas —{' '}
+            {tab === 'areas'
+              ? 'edite a área informando latitude/longitude.'
+              : 'a área da denúncia ainda não foi geocodificada.'}
+          </Text>
+        </View>
+      )}
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {loading && areaList.length === 0 && denList.length === 0 ? (
+          <Loading label="Carregando…" />
+        ) : error ? (
+          <ErrorNote
+            message={error}
+            onRetry={() => {
+              areas.reload();
+              denuncias.reload();
+            }}
+          />
+        ) : sortedRows.length === 0 ? (
+          <EmptyState title="Nada por aqui" hint="Ajuste a busca ou os filtros." />
+        ) : (
+          <>
+            <Text style={styles.listLabel}>
+              {userPos ? 'Mais próximas de você' : 'Áreas e denúncias'}
+              {userPos ? (
+                <Text style={styles.listLabelHint}>
+                  {'  '}· ordenado por distância
+                </Text>
+              ) : null}
+            </Text>
+
+            <View style={styles.rowList}>
+              {sortedRows.map((r) => {
+                const active = selected === r.key;
+                const noGeo = r.lat === null || r.lng === null;
+                const dist =
+                  userPos && r.lat !== null && r.lng !== null
+                    ? haversineM(userPos.lat, userPos.lng, r.lat, r.lng)
+                    : null;
+
+                return (
+                  <TouchableOpacity
+                    key={r.key}
+                    style={[styles.row, active && styles.rowActive]}
+                    onPress={() => setSelected(active ? null : r.key)}
+                    activeOpacity={0.85}
+                  >
+                    <View
+                      style={[
+                        styles.rowDot,
+                        { backgroundColor: r.color, opacity: noGeo ? 0.35 : 1 },
+                      ]}
+                    />
+                    <View style={styles.rowInfo}>
+                      <Text style={styles.rowTitle} numberOfLines={1}>
+                        {r.title}
+                      </Text>
+                      <Text style={styles.rowSub} numberOfLines={1}>
+                        {r.sub}
+                        {r.kind === 'area' && !noGeo ? (
+                          <Text>
+                            {' '}·{' '}
+                            {r.poligono
+                              ? 'polígono'
+                              : fmtAreaM2(raioOf(r.status, r.raio))}
+                          </Text>
+                        ) : null}
+                        {noGeo ? <Text> · sem mapa</Text> : null}
+                        {dist !== null ? (
+                          <Text style={styles.rowSubStrong}>
+                            {' '}· {fmtDist(dist)}
+                          </Text>
+                        ) : null}
+                      </Text>
+                    </View>
+                    <StatusBadge
+                      status={r.status}
+                      map={r.kind === 'area' ? AREA_STATUS : DEN_STATUS}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {selectedRow && (
+              <Card style={styles.selectedCard}>
+                <Text style={styles.selectedLabel}>
+                  {selectedRow.kind === 'area'
+                    ? 'Área selecionada'
+                    : 'Denúncia selecionada'}
+                </Text>
+                <Text style={styles.selectedTitle}>{selectedRow.title}</Text>
+                <Text style={styles.selectedText}>
+                  {selectedRow.sub}
+                  {selectedRow.kind === 'area' &&
+                    selectedRow.lat !== null &&
+                    ` · cobertura ${
+                      selectedRow.poligono
+                        ? 'em polígono irregular'
+                        : fmtAreaM2(
+                            raioOf(selectedRow.status, selectedRow.raio),
+                          )
+                    }`}
+                  {selectedRow.kind === 'area' &&
+                    (selectedRow.denunciasCount ?? 0) > 0 &&
+                    ` · ${numFmt(selectedRow.denunciasCount)} denúncia${
+                      (selectedRow.denunciasCount ?? 0) === 1 ? '' : 's'
+                    }`}
+                </Text>
+                {selectedRow.kind === 'area' &&
+                  selectedRow.status === 'identificada' && (
+                    <Text style={styles.selectedText}>
+                      Esta área ainda não tem árvores. Sua denúncia ajuda a ONG
+                      a priorizar o local.
+                    </Text>
+                  )}
+                <Button
+                  label={
+                    selectedRow.kind === 'area'
+                      ? 'Denunciar esta área'
+                      : 'Ver minha denúncia'
+                  }
+                  onPress={goToReport}
+                  style={styles.selectedAction}
+                />
+              </Card>
+            )}
+          </>
+        )}
+      </ScrollView>
     </View>
   );
 }
 
-function LegendDot({ color, label }) {
+function LegendItem({ color, label }) {
   return (
     <View style={styles.legendItem}>
       <View style={[styles.legendDot, { backgroundColor: color }]} />

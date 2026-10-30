@@ -1,191 +1,220 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, TextInput,
-  RefreshControl, Modal, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api';
-import { AppHeader, LoadingView, ErrorView, EmptyView, StatusBadge } from '../../components/ui';
-import { COLORS, DEN_LABELS, denColor } from '../../theme';
-import { styles } from './DenunciarStyle.js';
+import { useFetch } from '../../hooks/useFetch';
+import { getCurrentCoords } from '../../utils/location';
+import { Button, Card, EmptyState, Loading, StatusBadge } from '../../components/ui';
+import { COLORS, DEN_STATUS, FONTS, numFmt } from '../../theme';
+import { styles } from './DenunciarStyle';
 
 const CATEGORIES = [
-  { key: 'sem-arvores', label: 'Local sem árvores', icon: 'tree-outline' },
+  { key: 'sem-arvores', label: 'Local sem árvores', icon: 'leaf' },
   { key: 'corte-irregular', label: 'Corte irregular', icon: 'close-circle-outline' },
   { key: 'poda-inadequada', label: 'Poda inadequada', icon: 'scissors-outline' },
   { key: 'area-degradada', label: 'Área degradada', icon: 'warning-outline' },
 ];
 
+function parseAddress(raw) {
+  const [first, ...rest] = raw.split(',').map((s) => s.trim());
+  return {
+    rua: first || 'Área não nomeada',
+    bairro: rest.join(' ').trim() || undefined,
+  };
+}
+
 export default function DenunciarScreen({ navigation }) {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const [denuncias, setDenuncias] = useState([]);
-  const [areas, setAreas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all');
 
-  // Tab nova / minhas
   const [tab, setTab] = useState('nova');
-
-  // Form nova denúncia
-  const [modal, setModal] = useState(false);
-  const [category, setCategory] = useState(CATEGORIES[0].key);
-  const [address, setAddress] = useState(route.params?.address ?? '');
+  const [category, setCategory] = useState('');
+  const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
   const [foto, setFoto] = useState('');
-  const [areaId, setAreaId] = useState(null);
-  const [areaQuery, setAreaQuery] = useState('');
-  const [sending, setSending] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [error, setError] = useState(null);
   const [protocol, setProtocol] = useState(null);
 
-  const useMyLocation = async () => {
-    try {
-      setLocating(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permissão negada', 'Ative a localização para usar sua posição.');
-        return;
-      }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const [place] = await Location.reverseGeocodeAsync({
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-      });
-      const rua = place?.street || place?.pedestrian || '';
-      const bairro = place?.suburb || place?.neighbourhood || place?.city_district || place?.city || '';
-      const texto = [rua, bairro].filter(Boolean).join(', ');
-      if (texto) setAddress(texto);
-      else setError('Não foi possível identificar o endereço.');
-    } catch {
-      setError('Não foi possível obter sua localização.');
-    } finally {
-      setLocating(false);
-    }
-  };
+  const areas = useFetch(() => api.get('/areas').then((r) => r.areas ?? []));
+  const denuncias = useFetch(() =>
+    api.get('/denuncias').then((r) => r.denuncias ?? []),
+  );
 
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      const [d, a] = await Promise.all([api.get('/denuncias'), api.get('/areas')]);
-      setDenuncias(d.data.denuncias ?? []);
-      setAreas(a.data.areas ?? []);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Sem conexão com o servidor.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useFocusEffect(useCallback(() => { load(); }, [load]));
-
-  // Abre o formulário vindo do mapa/home com o endereço pré-preenchido
   useEffect(() => {
-    if (route.params?.address && !address) setAddress(route.params.address);
-    if (route.params?.areaId) {
-      setAreaId(route.params.areaId);
-      setModal(true);
-      navigation.setParams({ areaId: undefined });
+    const incoming = route.params?.address;
+    if (incoming) {
+      setAddress(incoming);
+      setTab('nova');
+      setProtocol(null);
+      setError(null);
+      navigation.setParams({ address: undefined });
     }
-    if (route.params?.denunciaId) {
+  }, [route.params?.address, navigation]);
+
+  useEffect(() => {
+    const incoming = route.params?.denunciaId;
+    if (incoming) {
       setTab('minhas');
+      setProtocol(null);
+      setError(null);
       navigation.setParams({ denunciaId: undefined });
     }
-  }, [route.params?.address, route.params?.areaId, route.params?.denunciaId, address, navigation]);
-
-  const list = useMemo(
-    () => denuncias.filter((d) => (filter === 'all' ? true : d.statusDenuncia === filter)),
-    [denuncias, filter],
-  );
+  }, [route.params?.denunciaId, navigation]);
 
   const myReports = useMemo(
-    () => denuncias.filter((d) => d.usuario?.idUsuario === user?.idUsuario),
-    [denuncias, user?.idUsuario],
+    () =>
+      (denuncias.data ?? []).filter(
+        (d) =>
+          (d.usuario?.idUsuario ?? d.idUsuario) === user?.idUsuario,
+      ),
+    [denuncias.data, user?.idUsuario],
   );
 
-  const areaOptions = useMemo(() => {
-    const q = areaQuery.trim().toLowerCase();
-    return areas
-      .filter((a) => !q || a.rua?.toLowerCase().includes(q) || a.bairro?.toLowerCase().includes(q))
-      .slice(0, 20);
-  }, [areas, areaQuery]);
-
-  const canSubmit = !!category && address.trim().length > 0 && !sending;
-
-  const submit = async () => {
-    if (!category || !address.trim()) {
-      setError('Preencha a categoria e o endereço.');
-      return;
-    }
-    setError(null);
-    setSending(true);
-    try {
-      await api.post('/denuncias', {
-        idArea: areaId || undefined,
-        titulo: category,
-        descricao: description.trim() || undefined,
-        foto: foto.trim() || undefined,
-      });
-      setModal(false);
-      setCategory(CATEGORIES[0].key);
-      setAddress('');
-      setDescription('');
-      setFoto('');
-      setAreaId(null);
-      setAreaQuery('');
-      setProtocol(Date.now());
-      setTab('nova');
-      load();
-    } catch (err) {
-      setError(err.response?.data?.error || 'Não foi possível enviar a denúncia.');
-    } finally {
-      setSending(false);
-    }
-  };
+  const canSubmit = !!category && address.trim().length > 0 && !busy;
 
   const reset = () => {
-    setProtocol(null);
-    setCategory(CATEGORIES[0].key);
+    setCategory('');
     setAddress('');
     setDescription('');
     setFoto('');
-    setAreaId(null);
-    setAreaQuery('');
+    setProtocol(null);
     setError(null);
   };
 
+  const useMyLocation = useCallback(async () => {
+    setError(null);
+    setLocating(true);
+    try {
+      const coords = await getCurrentCoords();
+      let rua = '';
+      let bairro = '';
+
+      if (Platform.OS === 'web') {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}`,
+        );
+        const data = await res.json();
+        const a = data.address ?? {};
+        rua = a.road || a.pedestrian || a.street || '';
+        bairro =
+          a.suburb || a.neighbourhood || a.city_district || a.city || '';
+      } else {
+        const [place] = await Location.reverseGeocodeAsync({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
+        rua = place?.street || place?.name || '';
+        bairro =
+          place?.suburb ||
+          place?.district ||
+          place?.city ||
+          '';
+      }
+
+      const texto = [rua, bairro].filter(Boolean).join(', ');
+      if (texto) setAddress(texto);
+      else setError('Não foi possível identificar o endereço.');
+    } catch (e) {
+      setError(
+        e?.message ||
+          'Não foi possível obter sua localização. Permita o acesso à localização.',
+      );
+    } finally {
+      setLocating(false);
+    }
+  }, []);
+
+  async function onSubmit() {
+    if (!category || !address.trim()) return;
+
+    setBusy(true);
+    setError(null);
+
+    try {
+      const { rua, bairro } = parseAddress(address);
+
+      let area = (areas.data ?? []).find((a) =>
+        (a.rua || '').toLowerCase().includes(rua.toLowerCase()),
+      );
+
+      if (!area) {
+        const created = await api.post('/areas', {
+          cidade: 'Cidade Tiradentes',
+          bairro: bairro ?? 'Cidade Tiradentes',
+          rua,
+          statusArea: 'identificada',
+        });
+        area = created.data.area;
+        areas.reload();
+      }
+
+      const label =
+        CATEGORIES.find((c) => c.key === category)?.label ?? 'Denúncia';
+
+      const res = await api.post('/denuncias', {
+        idArea: area.idArea,
+        titulo: label,
+        descricao: description.trim() || undefined,
+        foto: foto.trim() || undefined,
+      });
+
+      setProtocol(res.data.denuncia?.idDenuncia ?? null);
+      denuncias.reload();
+      setTab('nova');
+    } catch (e) {
+      setError(
+        e?.response?.data?.error ||
+          e?.message ||
+          'Não foi possível enviar a denúncia.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (protocol !== null && tab === 'nova') {
     return (
-      <View style={styles.root}>
-        <View style={styles.header} />
-        <View style={styles.successRoot}>
-          <View style={styles.successIcon}>
-            <Ionicons name="checkmark-circle-outline" size={34} color="#2E8B57" />
-          </View>
+      <View style={styles.successRoot}>
+        <View style={styles.successIcon}>
+          <Ionicons
+            name="checkmark-circle"
+            size={34}
+            color={COLORS.success}
+          />
+        </View>
+        <View>
           <Text style={styles.successTitle}>Denúncia registrada</Text>
           <Text style={styles.successSub}>
             Protocolo{' '}
-            <Text style={{ fontWeight: '700', color: COLORS.text }}>#{protocol}</Text>{' '}
-            encaminhado às ONGs parceiras da região.
+            <Text style={styles.successBold}>#{protocol}</Text> encaminhado às
+            ONGs parceiras da região.
           </Text>
-          <View style={styles.successBtnRow}>
-            <TouchableOpacity style={[styles.btnGhost, { backgroundColor: COLORS.primary }]} onPress={reset} activeOpacity={0.85}>
-              <Ionicons name="warning-outline" size={14} color="#FFFFFF" />
-              <Text style={[styles.btnGhostText, { color: '#FFFFFF' }]}>Nova denúncia</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.btnGhost} onPress={() => setTab('minhas')} activeOpacity={0.85}>
-              <Ionicons name="list-outline" size={14} color={COLORS.text} />
-              <Text style={styles.btnGhostText}>Ver minhas</Text>
-            </TouchableOpacity>
-          </View>
+        </View>
+        <View style={styles.successActions}>
+          <Button label="Nova denúncia" onPress={reset} compact />
+          <Button
+            label="Ver minhas"
+            variant="ghost"
+            onPress={() => setTab('minhas')}
+            compact
+          />
         </View>
       </View>
     );
@@ -194,43 +223,51 @@ export default function DenunciarScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView
-        contentContainerStyle={styles.body}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} colors={[COLORS.primary]} />
-        }
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) + 8 }]}>
-          <Text style={styles.headerEyebrow}>Área sem arborização?</Text>
-          <Text style={styles.headerTitle}>Denúncias</Text>
-          <View style={styles.tabBar}>
-            <TouchableOpacity
-              style={[styles.tab, tab === 'nova' && styles.tabActive]}
-              onPress={() => { setTab('nova'); setError(null); }}
-            >
-              <Text style={[styles.tabText, tab === 'nova' && styles.tabTextActive]}>Nova</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, tab === 'minhas' && styles.tabActive]}
-              onPress={() => { setTab('minhas'); setError(null); }}
-            >
-              <Text style={[styles.tabText, tab === 'minhas' && styles.tabTextActive]}>Minhas</Text>
-            </TouchableOpacity>
+      <View style={styles.root}>
+        <View
+          style={[
+            styles.header,
+            { paddingTop: Math.max(insets.top, 12) + 8 },
+          ]}
+        >
+          <Text style={styles.eyebrow}>Área sem arborização?</Text>
+          <Text style={styles.title}>Denúncias</Text>
+          <View style={styles.tabsRow}>
+            {[
+              ['nova', 'Nova'],
+              ['minhas', 'Minhas'],
+            ].map(([key, label]) => (
+              <TouchableOpacity
+                key={key}
+                style={[styles.tab, tab === key && styles.tabActive]}
+                onPress={() => {
+                  setTab(key);
+                  setError(null);
+                }}
+              >
+                <Text
+                  style={[styles.tabText, tab === key && styles.tabTextActive]}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
         {tab === 'nova' ? (
-          <>
-            <Text style={styles.introText}>
-              A denúncia é encaminhada diretamente para as ONGs parceiras que atuam em Cidade Tiradentes.
+          <ScrollView
+            contentContainerStyle={styles.body}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.intro}>
+              A denúncia é encaminhada diretamente para as ONGs parceiras que
+              atuam em Cidade Tiradentes.
             </Text>
 
-            {/* Categoria */}
             <View>
               <Text style={styles.sectionLabel}>Tipo de ocorrência</Text>
               <View style={styles.catGrid}>
@@ -241,191 +278,186 @@ export default function DenunciarScreen({ navigation }) {
                     onPress={() => setCategory(c.key)}
                     activeOpacity={0.85}
                   >
-                    <Ionicons name={c.icon} size={17} color={category === c.key ? COLORS.primary : COLORS.text} />
-                    <Text style={[styles.catText, category === c.key && styles.catTextActive]}>{c.label}</Text>
+                    <Ionicons
+                      name={c.icon}
+                      size={17}
+                      color={category === c.key ? COLORS.primary : COLORS.text}
+                    />
+                    <Text
+                      style={[
+                        styles.catText,
+                        category === c.key && styles.catTextActive,
+                      ]}
+                    >
+                      {c.label}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
 
-            {/* Endereço */}
             <View>
-              <Text style={styles.sectionLabel}>Rua (bairro opcional)</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="map-pin-outline" size={16} color={COLORS.primary} />
+              <Text style={styles.sectionLabel}>
+                Rua (bairro opcional)
+              </Text>
+              <View style={styles.addressRow}>
+                <Ionicons
+                  name="location"
+                  size={16}
+                  color={COLORS.primary}
+                />
                 <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="Ex.: Rua Iguaçu, 340 — Santa Etelvina"
-                  placeholderTextColor={COLORS.faint}
+                  style={styles.addressInput}
                   value={address}
                   onChangeText={setAddress}
+                  placeholder="Ex.: Rua Iguaçu, 340 — Santa Etelvina"
+                  placeholderTextColor={COLORS.faint}
                   autoCapitalize="none"
                 />
-                <TouchableOpacity style={styles.locateBtn} onPress={useMyLocation} disabled={locating}>
-                  {locating ? <ActivityIndicator size="small" color={COLORS.primary} /> : <Ionicons name="locate" size={16} color={COLORS.primary} />}
+                <TouchableOpacity
+                  style={styles.locateBtn}
+                  onPress={useMyLocation}
+                  disabled={locating}
+                  hitSlop={8}
+                >
+                  {locating ? (
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                  ) : (
+                    <Ionicons
+                      name="locate"
+                      size={16}
+                      color={COLORS.primary}
+                    />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Descrição */}
             <View>
-              <Text style={styles.sectionLabel}>Descrição <Text style={{ fontWeight: '400', color: COLORS.muted, fontSize: 11 }}>(opcional)</Text></Text>
-              <TextInput
-                style={[styles.textarea]}
-                placeholder="Descreva a situação…"
-                placeholderTextColor={COLORS.faint}
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={3}
-              />
+              <Text style={styles.sectionLabel}>
+                Descrição <Text style={styles.optional}>(opcional)</Text>
+              </Text>
+              <View style={styles.textareaWrap}>
+                <TextInput
+                  style={styles.textarea}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Descreva a situação…"
+                  placeholderTextColor={COLORS.faint}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
             </View>
 
-            {/* Foto URL */}
             <View>
-              <Text style={styles.sectionLabel}>Foto (URL) <Text style={{ fontWeight: '400', color: COLORS.muted, fontSize: 11 }}>(opcional)</Text></Text>
-              <TextInput
-                style={[styles.inputRow]}
-                placeholder="https://…"
-                placeholderTextColor={COLORS.faint}
-                value={foto}
-                onChangeText={setFoto}
-                autoCapitalize="none"
-              />
+              <Text style={styles.sectionLabel}>
+                Foto (URL) <Text style={styles.optional}>(opcional)</Text>
+              </Text>
+              <View style={styles.addressRow}>
+                <Ionicons
+                  name="image-outline"
+                  size={16}
+                  color={COLORS.primary}
+                />
+                <TextInput
+                  style={styles.addressInput}
+                  value={foto}
+                  onChangeText={setFoto}
+                  placeholder="https://…"
+                  placeholderTextColor={COLORS.faint}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                />
+              </View>
             </View>
 
             {!!error && (
               <View style={styles.errorBox}>
-                <Ionicons name="warning-outline" size={15} color={COLORS.error} style={styles.errorIcon} />
+                <Ionicons
+                  name="alert-triangle"
+                  size={15}
+                  color={COLORS.error}
+                  style={{ marginTop: 1 }}
+                />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
 
             <TouchableOpacity
-              style={[styles.button, canSubmit ? styles.buttonPrimary : styles.buttonDisabled, !canSubmit && { opacity: 0.6 }]}
-              onPress={submit}
+              style={[
+                styles.submitBtn,
+                !canSubmit && styles.submitBtnDisabled,
+              ]}
+              onPress={onSubmit}
               disabled={!canSubmit}
               activeOpacity={0.85}
             >
-              {sending ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+              {busy ? (
+                <ActivityIndicator size="small" color={COLORS.onPrimary} />
               ) : (
-                <Text style={styles.buttonText}>Enviar denúncia</Text>
+                <Text style={styles.submitText}>Enviar denúncia</Text>
               )}
             </TouchableOpacity>
-          </>
+          </ScrollView>
         ) : (
-          <View style={styles.body}>
-            {loading ? (
-              <LoadingView label="Carregando suas denúncias…" />
-            ) : error && denuncias.length === 0 ? (
-              <ErrorView message={error} onRetry={() => { setLoading(true); load(); }} />
+          <ScrollView
+            contentContainerStyle={styles.body}
+            showsVerticalScrollIndicator={false}
+          >
+            {denuncias.loading ? (
+              <Loading label="Carregando suas denúncias…" />
             ) : myReports.length === 0 ? (
-              <EmptyView
+              <EmptyState
                 icon="inbox-outline"
                 title="Nenhuma denúncia ainda"
-                hint="Suas denúncias vão aparecer aqui com o andamento."
+                hint="Suas denúncias vão aparecer aqui com o status de andamento."
               />
             ) : (
               <>
-                <Text style={styles.sectionTitle}>{myReports.length} {myReports.length === 1 ? 'denúncia' : 'denúncias'}</Text>
-                <FlatList
-                  data={myReports}
-                  keyExtractor={(item) => String(item.idDenuncia)}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.cardRow} activeOpacity={0.85}>
-                      <View style={styles.cardInfo}>
-                        <Text style={styles.cardTitle} numberOfLines={1}>{item.titulo}</Text>
-                        <Text style={styles.cardSub} numberOfLines={1}>
-                          {item.area?.rua || item.area?.bairro || 'Cidade Tiradentes'} · {item.dataDenuncia}
+                <Text style={styles.countLabel}>
+                  {numFmt(myReports.length)}{' '}
+                  {myReports.length === 1 ? 'denúncia' : 'denúncias'}
+                </Text>
+                <View style={styles.reportList}>
+                  {myReports.map((r) => (
+                    <Card key={r.idDenuncia} style={styles.reportCard}>
+                      <View style={styles.reportInfo}>
+                        <Text style={styles.reportTitle} numberOfLines={1}>
+                          {r.titulo}
                         </Text>
+                        <View style={styles.reportSub}>
+                          <Ionicons
+                            name="location"
+                            size={11}
+                            color={COLORS.primary}
+                          />
+                          <Text
+                            style={{
+                              fontFamily: FONTS.sans,
+                              fontSize: 12,
+                              color: COLORS.muted,
+                              flexShrink: 1,
+                            }}
+                            numberOfLines={1}
+                          >
+                            {r.area?.rua || r.area?.bairro || 'Cidade Tiradentes'}{' '}
+                            · {r.dataDenuncia}
+                          </Text>
+                        </View>
                       </View>
-                      <StatusBadge color={denColor(item.statusDenuncia)} label={DEN_LABELS[item.statusDenuncia] ?? item.statusDenuncia} />
-                    </TouchableOpacity>
-                  )}
-                  contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
-                />
+                      <StatusBadge
+                        status={r.statusDenuncia}
+                        map={DEN_STATUS}
+                      />
+                    </Card>
+                  ))}
+                </View>
               </>
             )}
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Modal nova denúncia (fluxo alternativo vindo do mapa) */}
-      <Modal visible={modal} animationType="slide" onRequestClose={() => setModal(false)}>
-        <View style={styles.modalRoot}>
-          <View style={styles.modalHead}>
-            <Text style={styles.modalTitle}>Nova denúncia</Text>
-            <TouchableOpacity onPress={() => setModal(false)} hitSlop={12}>
-              <Ionicons name="close" size={24} color={COLORS.text} />
-            </TouchableOpacity>
-          </View>
-          <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
-            <Text style={styles.label}>Tipo de ocorrência</Text>
-            <View style={styles.catGrid}>
-              {CATEGORIES.map((c) => (
-                <TouchableOpacity
-                  key={c.key}
-                  style={[styles.cat, category === c.key && styles.catActive]}
-                  onPress={() => setCategory(c.key)}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name={c.icon} size={17} color={category === c.key ? COLORS.primary : COLORS.text} />
-                  <Text style={[styles.catText, category === c.key && styles.catTextActive]}>{c.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.label}>Área *</Text>
-            <View style={styles.areaInputRow}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Buscar rua ou bairro..."
-                placeholderTextColor={COLORS.faint}
-                value={areaQuery}
-                onChangeText={setAreaQuery}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity style={styles.locateBtn} onPress={useMyLocation} disabled={locating}>
-                {locating ? <ActivityIndicator size="small" color={COLORS.primary} /> : <Ionicons name="locate" size={20} color={COLORS.primary} />}
-              </TouchableOpacity>
-            </View>
-            {areaOptions.map((a) => (
-              <TouchableOpacity
-                key={a.idArea}
-                style={[styles.areaOpt, areaId === a.idArea && styles.areaOptActive]}
-                onPress={() => setAreaId(a.idArea)}
-                activeOpacity={0.85}
-              >
-                <Ionicons name={areaId === a.idArea ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={areaId === a.idArea ? COLORS.primary : COLORS.faint} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.areaOptTitle} numberOfLines={1}>{a.rua}</Text>
-                  <Text style={styles.areaOptSub} numberOfLines={1}>{a.bairro} · {a.statusArea}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-
-            <Text style={styles.label}>Descrição (opcional)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Descreva a situação..."
-              placeholderTextColor={COLORS.faint}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={3}
-            />
-
-            <TouchableOpacity
-              style={[styles.send, sending && styles.sendDisabled]}
-              onPress={submit}
-              disabled={sending || !canSubmit}
-            >
-              {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendText}>Enviar denúncia</Text>}
-            </TouchableOpacity>
           </ScrollView>
-        </View>
-      </Modal>
+        )}
+      </View>
     </KeyboardAvoidingView>
   );
 }

@@ -1,97 +1,174 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert,
-  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useAuth } from '../../contexts/AuthContext';
-import { COLORS } from '../../theme';
-import {styles} from './LoginStyle.js'
+import { Button, Input } from '../../components/ui';
+import { COLORS, FONTS } from '../../theme';
+import { styles } from './LoginStyle';
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
   const insets = useSafeAreaInsets();
+
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
 
-  const handleLogin = async () => {
+  async function onSubmit() {
+    setError(null);
     if (!email.trim() || !senha) {
-      Alert.alert('Atenção', 'Preencha email e senha');
+      setError('Informe seu e-mail e sua senha.');
       return;
     }
-
-    setLoading(true);
-    const result = await signIn(email.trim(), senha);
-    setLoading(false);
-
-    if (!result.success) {
-      Alert.alert('Não consegui entrar', result.error);
+    setBusy(true);
+    try {
+      const res = await signIn(email.trim(), senha);
+      if (!res?.success) {
+        setError(res?.error || 'Não foi possível entrar.');
+      }
+    } finally {
+      setBusy(false);
     }
-  };
+  }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.content}>
-        <View style={styles.logo}>
-          <Text style={styles.logoText}>+V</Text>
-        </View>
-        <Text style={styles.title}>+Verde</Text>
-        <Text style={styles.subtitle}>Mapa de áreas sem árvores em Cidade Tiradentes</Text>
-
-        <View style={styles.form}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="voce@email.com"
-            placeholderTextColor={COLORS.faint}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="next"
-          />
-          <Text style={styles.label}>Senha</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Sua senha"
-            placeholderTextColor={COLORS.faint}
-            value={senha}
-            onChangeText={setSenha}
-            secureTextEntry
-            returnKeyType="go"
-            onSubmitEditing={handleLogin}
-          />
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.85}
+    <View style={styles.root}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <LinearGradient
+            colors={[COLORS.secondary, '#0E4C33', COLORS.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+              styles.hero,
+              { paddingTop: Math.max(insets.top, 16) + 32 },
+            ]}
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Entrar</Text>
-            )}
-          </TouchableOpacity>
+            <View style={styles.brandRow}>
+              <View style={styles.logoBox}>
+                <Ionicons name="leaf" size={20} color={COLORS.white} />
+              </View>
+              <Text style={styles.brand}>+Verde</Text>
+            </View>
 
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.link}>Não tem conta? <Text style={styles.linkBold}>Criar conta</Text></Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+            <Text style={styles.title}>
+              Cidade Tiradentes,{'\n'}mais verde
+              <Text style={styles.titleAccent}>.</Text>
+            </Text>
+
+            <Text style={styles.subtitle}>
+              Mapeie áreas sem arborização, denuncie e conecte-se com ONGs que
+              reforestam a zona leste de São Paulo.
+            </Text>
+          </LinearGradient>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Entrar na sua conta</Text>
+
+            <Text style={labelStyle}>E-mail</Text>
+            <Input
+              icon="mail-outline"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="voce@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+            />
+
+            <View style={{ height: 12 }} />
+
+            <Text style={labelStyle}>Senha</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Input
+                style={{ flex: 1 }}
+                icon="lock-closed-outline"
+                value={senha}
+                onChangeText={setSenha}
+                placeholder="••••••••"
+                secureTextEntry={!showPass}
+                autoCapitalize="none"
+                autoComplete="password"
+              />
+              <Pressable
+                onPress={() => setShowPass((v) => !v)}
+                hitSlop={10}
+                style={{ padding: 4 }}
+              >
+                <Ionicons
+                  name={showPass ? 'eye-off-outline' : 'eye-outline'}
+                  size={17}
+                  color={COLORS.muted}
+                />
+              </Pressable>
+            </View>
+
+            {!!error && (
+              <View style={styles.errorBox}>
+                <Ionicons
+                  name="alert-triangle"
+                  size={15}
+                  color={COLORS.error}
+                  style={{ marginTop: 1 }}
+                />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <Button
+              label="Entrar"
+              onPress={onSubmit}
+              loading={busy}
+              style={styles.submit}
+            />
+
+            <Text style={styles.signup}>
+              Ainda não tem conta?{' '}
+              <Text
+                style={styles.signupLink}
+                onPress={() => navigation.navigate('Register')}
+              >
+                Cadastre-se
+              </Text>
+            </Text>
+          </View>
+
+          <Text style={styles.footer}>
+            Rede comunitária de arborização urbana de{' '}
+            <Text style={styles.footerStrong}>Cidade Tiradentes</Text> —
+            concebida em parceria com ONGs e moradores da região.
+          </Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
+const labelStyle = {
+  marginBottom: 7,
+  fontFamily: FONTS.sans,
+  fontSize: 12,
+  fontWeight: '700',
+  color: COLORS.muted,
+};

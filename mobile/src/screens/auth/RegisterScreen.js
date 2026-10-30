@@ -1,101 +1,213 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Text,
-  TextInput,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ScrollView,
-  ActivityIndicator,
+  Text,
+  View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useAuth } from '../../contexts/AuthContext';
+import { BackLink, Button, Input } from '../../components/ui';
 import { COLORS } from '../../theme';
-import {styles} from './RegisterStyles.js'; 
+import { styles } from './RegisterStyles';
+
+function formatCpf(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length > 9) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  }
+  if (digits.length > 6) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  }
+  if (digits.length > 3) {
+    return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  }
+  return digits;
+}
+
+function formatDate(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length > 4) {
+    const rest = digits.slice(4);
+    if (rest.length > 2) {
+      return `${digits.slice(0, 4)}-${rest.slice(0, 2)}-${rest.slice(2)}`;
+    }
+    return `${digits.slice(0, 4)}-${rest}`;
+  }
+  return digits;
+}
 
 export default function RegisterScreen({ navigation }) {
   const { signUp } = useAuth();
   const insets = useSafeAreaInsets();
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [cpf, setCpf] = useState('');
-  const [dataNasc, setDataNasc] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const handleRegister = async () => {
-    if (!nome.trim() || !email.trim() || !senha) {
-      Alert.alert('Atenção', 'Preencha nome, email e senha');
+  const [form, setForm] = useState({
+    nome: '',
+    email: '',
+    senha: '',
+    cpf: '',
+    dataNasc: '',
+  });
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const set = (key) => (value) =>
+    setForm((current) => ({ ...current, [key]: value }));
+
+  async function onSubmit() {
+    setError(null);
+
+    if (!form.nome.trim() || !form.email.trim() || !form.senha) {
+      setError('Preencha nome, e-mail e senha.');
       return;
     }
-    if (senha.length < 6) {
-      Alert.alert('Atenção', 'A senha precisa de ao menos 6 caracteres');
-      return;
-    }
-    const digits = cpf.replace(/\D/g, '');
-    if (cpf && digits.length !== 11) {
-      Alert.alert('Atenção', 'CPF deve ter 11 dígitos (só números)');
+    if (form.senha.length < 6) {
+      setError('A senha precisa ter ao menos 6 caracteres.');
       return;
     }
 
-    setLoading(true);
-    const result = await signUp({
-      nome: nome.trim(),
-      email: email.trim(),
-      senha,
-      cpf: digits || undefined,
-      dataNasc: dataNasc.trim() || undefined, // AAAA-MM-DD
-    });
-    setLoading(false);
-
-    if (!result.success) {
-      Alert.alert('Não consegui criar', result.error);
+    setBusy(true);
+    try {
+      const res = await signUp({
+        nome: form.nome.trim(),
+        email: form.email.trim(),
+        senha: form.senha,
+        cpf: form.cpf || undefined,
+        dataNasc: form.dataNasc || undefined,
+      });
+      if (!res?.success) {
+        setError(res?.error || 'Não foi possível criar a conta.');
+      }
+    } finally {
+      setBusy(false);
     }
-  };
+  }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Criar conta</Text>
-        <Text style={styles.subtitle}>Leva menos de 1 minuto</Text>
-
-        <Text style={styles.label}>Nome completo *</Text>
-        <TextInput style={styles.input} placeholder="Seu nome" placeholderTextColor={COLORS.faint}
-          value={nome} onChangeText={setNome} autoCapitalize="words" />
-
-        <Text style={styles.label}>Email *</Text>
-        <TextInput style={styles.input} placeholder="voce@email.com" placeholderTextColor={COLORS.faint}
-          value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
-
-        <Text style={styles.label}>Senha * (mín. 6)</Text>
-        <TextInput style={styles.input} placeholder="Crie uma senha" placeholderTextColor={COLORS.faint}
-          value={senha} onChangeText={setSenha} secureTextEntry />
-
-        <Text style={styles.label}>CPF (só números)</Text>
-        <TextInput style={styles.input} placeholder="12345678901" placeholderTextColor={COLORS.faint}
-          value={cpf} onChangeText={setCpf} keyboardType="number-pad" maxLength={11} />
-
-        <Text style={styles.label}>Nascimento (AAAA-MM-DD)</Text>
-        <TextInput style={styles.input} placeholder="1995-06-15" placeholderTextColor={COLORS.faint}
-          value={dataNasc} onChangeText={setDataNasc} keyboardType="numbers-and-punctuation" maxLength={10} />
-
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleRegister}
-          disabled={loading}
-          activeOpacity={0.85}
+    <View style={styles.root}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingTop: Math.max(insets.top, 12) + 8 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Criar conta</Text>}
-        </TouchableOpacity>
+          <View style={styles.header}>
+            <BackLink onPress={() => navigation.goBack()} />
 
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.link}>Já tenho conta. <Text style={styles.linkBold}>Entrar</Text></Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <View style={styles.brandRow}>
+              <View style={styles.logoBox}>
+                <Ionicons name="leaf" size={17} color={COLORS.white} />
+              </View>
+              <Text style={styles.brand}>+Verde</Text>
+            </View>
+
+            <Text style={styles.title}>Faça parte da rede.</Text>
+            <Text style={styles.subtitle}>
+              Crie sua conta para denunciar áreas sem arborização e acompanhar
+              projetos das ONGs parceiras.
+            </Text>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.label}>Nome completo</Text>
+            <Input
+              value={form.nome}
+              onChangeText={set('nome')}
+              placeholder="Maria Rodrigues"
+              autoCapitalize="words"
+            />
+
+            <View style={{ height: 12 }} />
+
+            <Text style={styles.label}>E-mail</Text>
+            <Input
+              value={form.email}
+              onChangeText={set('email')}
+              placeholder="voce@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+            />
+
+            <View style={{ height: 12 }} />
+
+            <Text style={styles.label}>Senha</Text>
+            <Input
+              value={form.senha}
+              onChangeText={set('senha')}
+              placeholder="Mínimo 6 caracteres"
+              secureTextEntry
+              autoCapitalize="none"
+              autoComplete="new-password"
+            />
+
+            <View style={{ height: 12 }} />
+
+            <View style={styles.row}>
+              <View style={styles.rowItem}>
+                <Text style={styles.label}>CPF</Text>
+                <Input
+                  value={form.cpf}
+                  onChangeText={(v) => set('cpf')(formatCpf(v))}
+                  placeholder="Opcional"
+                  keyboardType="numeric"
+                  maxLength={14}
+                />
+              </View>
+
+              <View style={styles.rowItem}>
+                <Text style={styles.label}>Nascimento</Text>
+                <Input
+                  value={form.dataNasc}
+                  onChangeText={(v) => set('dataNasc')(formatDate(v))}
+                  placeholder="AAAA-MM-DD"
+                  keyboardType="numeric"
+                  maxLength={10}
+                />
+              </View>
+            </View>
+
+            {!!error && (
+              <View style={styles.errorBox}>
+                <Ionicons
+                  name="alert-triangle"
+                  size={15}
+                  color={COLORS.error}
+                  style={{ marginTop: 1 }}
+                />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <Button
+              label="Criar conta"
+              onPress={onSubmit}
+              loading={busy}
+              style={styles.submit}
+            />
+
+            <Text style={styles.loginText}>
+              Já tem uma conta?{' '}
+              <Text
+                style={styles.loginLink}
+                onPress={() => navigation.goBack()}
+              >
+                Entrar
+              </Text>
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }

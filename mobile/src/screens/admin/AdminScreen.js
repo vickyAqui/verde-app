@@ -1,93 +1,99 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, ScrollView, RefreshControl,
-  Alert, ActivityIndicator, Platform, KeyboardAvoidingView,
+  Alert,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import api from '../../api';
-import { AppHeader, LoadingView, ErrorView, EmptyView, StatusBadge } from '../../components/ui';
-import { COLORS, AREA_LABELS, areaColor, DEN_LABELS, denColor, numFmt } from '../../theme';
-import { useAuth } from '../../contexts/AuthContext';
-import { styles } from './AdminStyle.js';
 
-const DEN_STATUS = {
+import api from '../../api';
+import { useFetch } from '../../hooks/useFetch';
+import {
+  BackLink,
+  Button,
+  Card,
+  ErrorNote,
+  Loading,
+  SectionLabel,
+  StatusBadge,
+} from '../../components/ui';
+import { COLORS, DEN_STATUS, ONG_STATUS, numFmt } from '../../theme';
+import { styles } from './AdminStyle';
+
+const DEN_ADMIN = {
   aberta: { label: 'Aberta', color: COLORS.error },
   'em tratamento': { label: 'Em tratamento', color: COLORS.warning },
   resolvida: { label: 'Resolvida', color: COLORS.success },
+  resolvido: { label: 'Resolvida', color: COLORS.success },
 };
 
-const ONG_STATUS = {
-  pendente: { label: 'Pendente', color: COLORS.warning },
-  aprovada: { label: 'Aprovada', color: COLORS.success },
-  rejeitada: { label: 'Rejeitada', color: COLORS.error },
-};
-
-const AREA_STATUS = {
-  identificada: { label: 'Déficit', color: COLORS.error },
+const AREA_ADMIN = {
+  identificada: { label: 'Identificada', color: COLORS.error },
   'em tratamento': { label: 'Em tratamento', color: COLORS.warning },
   reflorestada: { label: 'Reflorestada', color: COLORS.success },
 };
 
+const TABS = [
+  { key: 'denuncias', label: 'Denúncias' },
+  { key: 'ongs', label: 'ONGs pendentes' },
+  { key: 'areas', label: 'Áreas' },
+  { key: 'visao', label: 'Visão geral' },
+];
+
+const DEN_DOT = {
+  aberta: COLORS.error,
+  'em tratamento': COLORS.warning,
+};
+
+function denDotColor(status) {
+  return DEN_DOT[status] ?? COLORS.success;
+}
+
 export default function AdminScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
 
   const [tab, setTab] = useState('denuncias');
   const [selectedId, setSelectedId] = useState(null);
   const [selectedOngId, setSelectedOngId] = useState(null);
   const [updating, setUpdating] = useState(false);
-
-  const [stats, setStats] = useState(null);
-  const [denuncias, setDenuncias] = useState([]);
-  const [areas, setAreas] = useState([]);
-  const [ongs, setOngs] = useState([]);
-  const [projetos, setProjetos] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(null);
 
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      setLoading(true);
-      const [dRes, aRes, oRes, pRes] = await Promise.all([
-        api.get('/admin/dashboard'),
-        api.get('/admin/denuncias'),
-        api.get('/admin/areas'),
-        api.get('/admin/ongs'),
-        api.get('/admin/projetos'),
-      ]);
-      setStats(dRes.data.stats ?? null);
-      setDenuncias(dRes.data.denuncias ?? []);
-      setAreas(aRes.data.areas ?? []);
-      setOngs(oRes.data.ongs ?? []);
-      setProjetos(pRes.data.projetos ?? []);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Sem conexão com o servidor.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  const dashboard = useFetch(() =>
+    api.get('/admin/dashboard').then((r) => r.stats ?? null),
+  );
+  const denuncias = useFetch(() =>
+    api.get('/admin/denuncias').then((r) => r.denuncias ?? []),
+  );
+  const areas = useFetch(() =>
+    api.get('/admin/areas').then((r) => r.areas ?? []),
+  );
+  const ongs = useFetch(() => api.get('/admin/ongs').then((r) => r.ongs ?? []));
+  const projetos = useFetch(() =>
+    api.get('/admin/projetos').then((r) => r.projetos ?? []),
+  );
 
   const pendingOngs = useMemo(
-    () => ongs.filter((o) => (o.statusOng || 'pendente').toLowerCase() === 'pendente'),
-    [ongs],
+    () =>
+      (ongs.data ?? []).filter(
+        (o) => (o.statusOng || 'pendente').toLowerCase() === 'pendente',
+      ),
+    [ongs.data],
   );
 
   const deficitAreas = useMemo(
-    () => areas.filter((a) => a.statusArea !== 'reflorestada'),
-    [areas],
+    () => (areas.data ?? []).filter((a) => a.statusArea !== 'reflorestada'),
+    [areas.data],
   );
 
   const selected = useMemo(
-    () => denuncias.find((d) => d.idDenuncia === selectedId) ?? null,
-    [denuncias, selectedId],
+    () =>
+      (denuncias.data ?? []).find((d) => d.idDenuncia === selectedId) ?? null,
+    [denuncias.data, selectedId],
   );
 
   const selectedOng = useMemo(
@@ -95,20 +101,44 @@ export default function AdminScreen({ navigation }) {
     [pendingOngs, selectedOngId],
   );
 
-  const handleUpdateDenuncia = async (id, status) => {
+  const reloadMain = () => {
+    denuncias.reload();
+    areas.reload();
+    ongs.reload();
+    projetos.reload();
+    dashboard.reload();
+  };
+
+  const refreshAll = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      denuncias.reload(),
+      areas.reload(),
+      ongs.reload(),
+      projetos.reload(),
+      dashboard.reload(),
+    ]);
+    setRefreshing(false);
+  };
+
+  const updateStatus = async (id, status) => {
     setUpdating(true);
     try {
       await api.put(`/denuncias/${id}`, { statusDenuncia: status });
       setSelectedId(null);
-      load();
-    } catch (err) {
-      Alert.alert('Erro', err.response?.data?.error || 'Não foi possível atualizar.');
+      denuncias.reload();
+      dashboard.reload();
+    } catch (e) {
+      Alert.alert(
+        'Erro',
+        e?.response?.data?.error || 'Não foi possível atualizar.',
+      );
     } finally {
       setUpdating(false);
     }
   };
 
-  const handleUpdateOng = async (id, action) => {
+  const updateOngStatus = async (id, action) => {
     setUpdating(true);
     try {
       if (action === 'approve') {
@@ -117,317 +147,479 @@ export default function AdminScreen({ navigation }) {
         await api.del(`/admin/ong/${id}/approve`);
       }
       setSelectedOngId(null);
-      load();
-    } catch (err) {
-      Alert.alert('Erro', err.response?.data?.error || 'Não foi possível atualizar.');
+      ongs.reload();
+      dashboard.reload();
+    } catch (e) {
+      Alert.alert(
+        'Erro',
+        e?.response?.data?.error || 'Não foi possível atualizar.',
+      );
     } finally {
       setUpdating(false);
     }
   };
 
-  const formatUserName = (ong) => {
-    return (ong.usuario?.nome || ong.nome || 'ONG');
-  };
+  const ongName = (ong) => ong.usuario?.nome || ong.nome || 'ONG';
 
-  if (loading) {
-    return (
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <LoadingView label="Carregando painel…" />
-      </KeyboardAvoidingView>
-    );
-  }
+  const currentLoading =
+    tab === 'denuncias'
+      ? denuncias.loading
+      : tab === 'ongs'
+        ? ongs.loading
+        : tab === 'areas'
+          ? areas.loading
+          : dashboard.loading;
+
+  const currentError =
+    tab === 'denuncias'
+      ? denuncias.error
+      : tab === 'ongs'
+        ? ongs.error
+        : tab === 'areas'
+          ? areas.error
+          : dashboard.error;
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} colors={[COLORS.primary]} />
-        }
+    <View style={styles.root}>
+      {/* Cabeçalho */}
+      <LinearGradient
+        colors={['#0C3322', '#0E4C33', '#166B44']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.cover, { paddingTop: Math.max(insets.top, 12) + 8 }]}
       >
-        {/* ── Cover ── */}
-        <View style={styles.cover}>
-          <LinearGradient
-            colors={['#0C3322', '#0E4C33', '#166B44']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+        <View style={styles.coverRow}>
+          <BackLink
+            onPress={() => navigation.goBack()}
+            label="App"
+            color="rgba(255,255,255,0.75)"
           />
-          <View style={styles.coverContent}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={8}>
-              <Ionicons name="arrow-back-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.backText}>App</Text>
-            </TouchableOpacity>
-            <View style={styles.coverTitle}>
-              <Text style={styles.coverEyebrow}>+Verde · Painel da ONG</Text>
-              <Text style={styles.coverTitleText}>Dashboard</Text>
-            </View>
+
+          <View style={styles.coverTitleWrap}>
+            <Text style={styles.coverEyebrow}>+Verde · Painel da ONG</Text>
+            <Text style={styles.coverTitle}>Dashboard</Text>
           </View>
         </View>
 
-        {/* ── Stats dashboard ── */}
-        {stats && (
+        {dashboard.loading ? (
+          <View style={styles.statsSkeleton} />
+        ) : dashboard.data ? (
           <View style={styles.statsRow}>
             {[
-              { v: stats.denunciasAbertas, l: 'Abertas', c: '#F3B27A' },
-              { v: stats.totalDenuncias, l: 'Denúncias', c: '#B8E6C9' },
-              { v: stats.totalONGs, l: 'ONGs', c: '#F7D9A0' },
-            ].map((stat) => (
-              <View key={stat.l} style={[styles.statCard, { backgroundColor: 'rgba(255,255,255,0.12)' }]}>
-                <Text style={[styles.statValue, { color: stat.c }]}>{numFmt(stat.v)}</Text>
-                <Text style={styles.statLabel}>{stat.l}</Text>
+              {
+                v: dashboard.data.denunciasAbertas,
+                l: 'Abertas',
+                c: '#F3B27A',
+              },
+              {
+                v: dashboard.data.totalDenuncias,
+                l: 'Denúncias',
+                c: '#B8E6C9',
+              },
+              { v: dashboard.data.totalONGs, l: 'ONGs', c: '#F7D9A0' },
+            ].map((s) => (
+              <View key={s.l} style={styles.statCard}>
+                <Text style={[styles.statValue, { color: s.c }]}>
+                  {numFmt(s.v)}
+                </Text>
+                <Text style={styles.statLabel}>{s.l}</Text>
               </View>
             ))}
           </View>
-        )}
+        ) : null}
+      </LinearGradient>
 
-        {/* ── Abas ── */}
-        <View style={styles.tabBar}>
-          {[
-            ['denuncias', 'Denúncias'],
-            ['ongs', 'ONGs pendentes'],
-            ['areas', 'Áreas'],
-            ['visao', 'Visão geral'],
-          ].map(([key, label]) => (
-            <TouchableOpacity
-              key={key}
-              style={[styles.tab, tab === key && styles.tabActive]}
-              onPress={() => { setTab(key); setSelectedId(null); setSelectedOngId(null); }}
-              activeOpacity={0.85}
+      {/* Abas */}
+      <View style={styles.tabBar}>
+        {TABS.map((t) => (
+          <TouchableOpacity
+            key={t.key}
+            style={[styles.tab, tab === t.key && styles.tabActive]}
+            onPress={() => {
+              setTab(t.key);
+              setSelectedId(null);
+              setSelectedOngId(null);
+            }}
+            activeOpacity={0.85}
+          >
+            <Text
+              style={[styles.tabText, tab === t.key && styles.tabTextActive]}
+              numberOfLines={1}
             >
-              <Text style={[styles.tabText, tab === key && styles.tabTextActive]}>{label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+              {t.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-        {error && !loading && (
-          <ErrorView message={error} onRetry={() => { setRefreshing(true); load(); }} />
-        )}
-
-        {/* ── Conteúdo por aba ── */}
-        {tab === 'denuncias' ? (
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={refreshAll}
+            colors={[COLORS.primary]}
+          />
+        }
+      >
+        {currentError ? (
+          <ErrorNote message={currentError} onRetry={reloadMain} />
+        ) : currentLoading ? (
+          <Loading label="Carregando…" />
+        ) : tab === 'denuncias' ? (
           selected ? (
-            <View style={styles.detailBlock}>
-              <TouchableOpacity style={styles.backBtn} onPress={() => setSelectedId(null)} hitSlop={8}>
-                <Ionicons name="arrow-back-outline" size={16} color={COLORS.muted} />
-                <Text style={styles.backText}>Voltar</Text>
-              </TouchableOpacity>
-              <View style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>{selected.titulo}</Text>
-                  <View style={[styles.badgeWrap, { backgroundColor: DEN_STATUS[selected.statusDenuncia]?.color }]}>
-                    <Text style={styles.badgeText}>{DEN_STATUS[selected.statusDenuncia]?.label}</Text>
+            <View style={styles.detail}>
+              <BackLink onPress={() => setSelectedId(null)} />
+
+              <Card style={styles.detailCard}>
+                <View style={styles.detailHeader}>
+                  <View style={styles.detailTitleWrap}>
+                    <Text style={styles.detailTitle}>{selected.titulo}</Text>
+                    <View style={styles.metaRow}>
+                      <Ionicons
+                        name="location"
+                        size={11}
+                        color={COLORS.primary}
+                      />
+                      <Text style={styles.metaText} numberOfLines={1}>
+                        {selected.area?.rua ||
+                          selected.area?.bairro ||
+                          'Cidade Tiradentes'}
+                      </Text>
+                    </View>
+                    <Text style={styles.metaText}>
+                      {selected.usuario?.nome} · {selected.dataDenuncia}
+                    </Text>
                   </View>
+                  <StatusBadge
+                    status={selected.statusDenuncia}
+                    map={DEN_ADMIN}
+                  />
                 </View>
-                <View style={styles.cardMeta}>
-                  <Text style={styles.metaText}>
-                    {selected.usuario?.nome || '—'} · {selected.dataDenuncia || '—'}
-                  </Text>
-                </View>
-                {selected.descricao && (
-                  <View style={styles.descBlock}>
+
+                {!!selected.descricao && (
+                  <View style={styles.descBox}>
                     <Text style={styles.descText}>{selected.descricao}</Text>
                   </View>
                 )}
+
                 <View style={styles.actions}>
-                  {selected.statusDenuncia !== 'em tratamento' && (
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: COLORS.warning }]}
-                      onPress={() => handleUpdateDenuncia(selected.idDenuncia, 'em tratamento')}
-                      disabled={updating}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons name="clock-outline" size={16} color="#FFFFFF" />
-                      <Text style={styles.actionBtnText}>Marcar em tratamento</Text>
-                    </TouchableOpacity>
-                  )}
-                  {selected.statusDenuncia !== 'resolvida' && (
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: COLORS.success }]}
-                      onPress={() => handleUpdateDenuncia(selected.idDenuncia, 'resolvida')}
-                      disabled={updating}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
-                      <Text style={styles.actionBtnText}>Marcar resolvida</Text>
-                    </TouchableOpacity>
-                  )}
+                  <Button
+                    label="Marcar em tratamento"
+                    icon="time-outline"
+                    variant="warning"
+                    onPress={() =>
+                      updateStatus(selected.idDenuncia, 'em tratamento')
+                    }
+                    disabled={
+                      updating ||
+                      selected.statusDenuncia === 'em tratamento'
+                    }
+                  />
+                  <Button
+                    label="Marcar resolvida"
+                    icon="checkmark-circle-outline"
+                    variant="success"
+                    onPress={() =>
+                      updateStatus(selected.idDenuncia, 'resolvida')
+                    }
+                    disabled={
+                      updating ||
+                      selected.statusDenuncia === 'resolvida' ||
+                      selected.statusDenuncia === 'resolvido'
+                    }
+                  />
                 </View>
-              </View>
+              </Card>
             </View>
           ) : (
-            <FlatList
-              data={denuncias}
-              keyExtractor={(item) => String(item.idDenuncia)}
-              renderItem={({ item }) => (
+            <View style={styles.list}>
+              <SectionLabel style={styles.countLabel}>
+                {numFmt(denuncias.data?.length)} denúncias registradas
+              </SectionLabel>
+
+              {(denuncias.data ?? []).map((d) => (
                 <TouchableOpacity
-                  style={styles.denunciaRow}
-                  onPress={() => setSelectedId(item.idDenuncia)}
+                  key={d.idDenuncia}
+                  onPress={() => setSelectedId(d.idDenuncia)}
                   activeOpacity={0.85}
                 >
-                  <View style={styles.denunciaInfo}>
-                    <Text style={styles.denunciaTitle}>{item.titulo}</Text>
-                    <Text style={styles.denunciaSub}>
-                      {item.usuario?.nome || '—'} · {item.area?.rua || item.area?.bairro || '—'} · {item.dataDenuncia || '—'}
-                    </Text>
-                  </View>
-                  <View style={[styles.badgeWrap, { backgroundColor: DEN_STATUS[item.statusDenuncia]?.color }]}>
-                    <Text style={styles.badgeText}>{DEN_STATUS[item.statusDenuncia]?.label}</Text>
-                  </View>
+                  <Card style={styles.rowCard}>
+                    <View
+                      style={[
+                        styles.rowDot,
+                        { backgroundColor: denDotColor(d.statusDenuncia) },
+                      ]}
+                    />
+                    <View style={styles.rowInfo}>
+                      <Text style={styles.rowTitle} numberOfLines={1}>
+                        {d.titulo}
+                      </Text>
+                      <Text style={styles.rowSub} numberOfLines={1}>
+                        {d.usuario?.nome} ·{' '}
+                        {d.area?.rua || d.area?.bairro || '—'} ·{' '}
+                        {d.dataDenuncia}
+                      </Text>
+                    </View>
+                    <StatusBadge status={d.statusDenuncia} map={DEN_ADMIN} />
+                  </Card>
                 </TouchableOpacity>
-              )}
-              contentContainerStyle={styles.listContent}
-              ListEmptyComponent={
-                <EmptyView icon="alert-circle-outline" title="Nenhuma denúncia" hint="Não há denúncias registradas." />
-              }
-            />
+              ))}
+            </View>
           )
         ) : tab === 'ongs' ? (
           selectedOng ? (
-            <View style={styles.detailBlock}>
-              <TouchableOpacity style={styles.backBtn} onPress={() => setSelectedOngId(null)} hitSlop={8}>
-                <Ionicons name="arrow-back-outline" size={16} color={COLORS.muted} />
-                <Text style={styles.backText}>Voltar</Text>
-              </TouchableOpacity>
-              <View style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>{formatUserName(selectedOng)}</Text>
-                  <View style={[styles.badgeWrap, { backgroundColor: ONG_STATUS[selectedOng.statusOng]?.color }]}>
-                    <Text style={styles.badgeText}>{ONG_STATUS[selectedOng.statusOng]?.label}</Text>
+            <View style={styles.detail}>
+              <BackLink onPress={() => setSelectedOngId(null)} />
+
+              <Card style={styles.detailCard}>
+                <View style={styles.detailHeader}>
+                  <View style={styles.detailTitleWrap}>
+                    <Text style={styles.detailTitle}>
+                      {selectedOng.usuario?.nome ||
+                        selectedOng.nome ||
+                        'ONG'}
+                    </Text>
+                    <Text style={styles.metaText}>
+                      {selectedOng.regiao || 'Região não informada'}
+                    </Text>
+                    {!!selectedOng.cnpj && (
+                      <Text style={styles.metaText}>
+                        CNPJ: {selectedOng.cnpj}
+                      </Text>
+                    )}
+                    {!!selectedOng.telefone && (
+                      <Text style={styles.metaText}>
+                        Telefone: {selectedOng.telefone}
+                      </Text>
+                    )}
                   </View>
+                  <StatusBadge
+                    status={selectedOng.statusOng}
+                    map={ONG_STATUS}
+                  />
                 </View>
-                <View style={styles.cardMeta}>
-                  {selectedOng.regiao && <Text style={styles.metaText}>{selectedOng.regiao}</Text>}
-                  {selectedOng.cnpj && <Text style={styles.metaText}>CNPJ: {selectedOng.cnpj}</Text>}
-                  {selectedOng.telefone && <Text style={styles.metaText}>Telefone: {selectedOng.telefone}</Text>}
-                </View>
-                {selectedOng.descricao && (
-                  <View style={styles.descBlock}>
-                    <Text style={styles.descText}>{selectedOng.descricao}</Text>
+
+                {!!selectedOng.descricao && (
+                  <View style={styles.descBox}>
+                    <Text style={styles.descText}>
+                      {selectedOng.descricao}
+                    </Text>
                   </View>
                 )}
+
                 <View style={styles.actions}>
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: COLORS.success }]}
-                    onPress={() => handleUpdateOng(selectedOng.idOng, 'approve')}
+                  <Button
+                    label="Aprovar ONG"
+                    icon="checkmark-circle-outline"
+                    variant="success"
+                    onPress={() =>
+                      updateOngStatus(selectedOng.idOng, 'approve')
+                    }
                     disabled={updating}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
-                    <Text style={styles.actionBtnText}>Aprovar ONG</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: COLORS.error }]}
-                    onPress={() => handleUpdateOng(selectedOng.idOng, 'reject')}
+                  />
+                  <Button
+                    label="Rejeitar ONG"
+                    icon="close-circle-outline"
+                    variant="error"
+                    onPress={() =>
+                      updateOngStatus(selectedOng.idOng, 'reject')
+                    }
                     disabled={updating}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="close-circle-outline" size={16} color="#FFFFFF" />
-                    <Text style={styles.actionBtnText}>Rejeitar ONG</Text>
-                  </TouchableOpacity>
+                  />
                 </View>
-              </View>
+              </Card>
             </View>
           ) : (
-            <FlatList
-              data={pendingOngs}
-              keyExtractor={(item) => String(item.idOng)}
-              renderItem={({ item }) => (
+            <View style={styles.list}>
+              <SectionLabel style={styles.countLabel}>
+                {numFmt(pendingOngs.length)} ONGs aguardando aprovação
+              </SectionLabel>
+
+              {pendingOngs.map((ong) => (
                 <TouchableOpacity
-                  style={styles.ongRow}
-                  onPress={() => setSelectedOngId(item.idOng)}
+                  key={ong.idOng}
+                  onPress={() => setSelectedOngId(ong.idOng)}
                   activeOpacity={0.85}
                 >
-                  <View style={styles.ongInfo}>
-                    <Text style={styles.ongTitle}>{formatUserName(item)}</Text>
-                    <Text style={styles.ongSub}>{item.regiao || 'Região não informada'}</Text>
-                  </View>
-                  <View style={[styles.badgeWrap, { backgroundColor: ONG_STATUS[item.statusOng]?.color }]}>
-                    <Text style={styles.badgeText}>{ONG_STATUS[item.statusOng]?.label}</Text>
-                  </View>
+                  <Card style={styles.rowCard}>
+                    <View style={styles.rowIcon}>
+                      <Ionicons
+                        name="people-outline"
+                        size={16}
+                        color={COLORS.primary}
+                      />
+                    </View>
+                    <View style={styles.rowInfo}>
+                      <Text style={styles.rowTitle} numberOfLines={1}>
+                        {ongName(ong)}
+                      </Text>
+                      <Text style={styles.rowSub} numberOfLines={1}>
+                        {ong.regiao || 'Região não informada'}
+                      </Text>
+                    </View>
+                    <StatusBadge status={ong.statusOng} map={ONG_STATUS} />
+                  </Card>
                 </TouchableOpacity>
+              ))}
+
+              {pendingOngs.length === 0 && (
+                <Card style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>Nenhuma ONG pendente.</Text>
+                </Card>
               )}
-              contentContainerStyle={styles.listContent}
-              ListEmptyComponent={
-                <EmptyView icon="people-outline" title="Nenhuma ONG pendente" hint="Não há ONGs aguardando aprovação." />
-              }
-            />
+            </View>
           )
         ) : tab === 'areas' ? (
-          <FlatList
-            data={areas}
-            keyExtractor={(item) => String(item.idArea)}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.areaRow} activeOpacity={0.85}>
-                <View style={styles.areaInfo}>
-                  <Text style={styles.areaTitle}>{item.rua || item.bairro || item.cidade || 'Área'}</Text>
-                  <Text style={styles.areaSub}>{item.bairro || item.cidade || 'Cidade Tiradentes'}</Text>
+          <View style={styles.list}>
+            <SectionLabel style={styles.countLabel}>
+              {numFmt(areas.data?.length)} áreas mapeadas
+            </SectionLabel>
+
+            {(areas.data ?? []).map((area) => (
+              <Card key={area.idArea} style={styles.rowCard}>
+                <View style={styles.rowIcon}>
+                  <Ionicons
+                    name="leaf-outline"
+                    size={16}
+                    color={COLORS.primary}
+                  />
                 </View>
-                <View style={[styles.badgeWrap, { backgroundColor: AREA_STATUS[item.statusArea]?.color }]}>
-                  <Text style={styles.badgeText}>{AREA_STATUS[item.statusArea]?.label}</Text>
+                <View style={styles.rowInfo}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>
+                    {area.rua || area.bairro || area.cidade}
+                  </Text>
+                  <View style={styles.metaRow}>
+                    <Ionicons
+                      name="location"
+                      size={11}
+                      color={COLORS.primary}
+                    />
+                    <Text style={styles.rowSub} numberOfLines={1}>
+                      {area.bairro || area.cidade || 'Cidade Tiradentes'}
+                    </Text>
+                  </View>
                 </View>
-              </TouchableOpacity>
-            )}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
-              <EmptyView icon="leaf-outline" title="Nenhuma área" hint="Não há áreas mapeadas." />
-            }
-          />
+                <StatusBadge status={area.statusArea} map={AREA_ADMIN} />
+              </Card>
+            ))}
+          </View>
         ) : (
-          // Visão geral
-          <View style={styles.overviewBlock}>
-            <View style={styles.statsGrid}>
-              {[
-                { l: 'Usuários', v: stats?.totalUsuarios, c: COLORS.info },
-                { l: 'Áreas', v: stats?.totalAreas, c: COLORS.primary },
-                { l: 'Denúncias', v: stats?.totalDenuncias, c: COLORS.error },
-                { l: 'Projetos', v: stats?.totalProjetos, c: COLORS.success },
-              ].map((stat) => (
-                <View key={stat.l} style={[styles.statOverview, { borderColor: stat.c }]}>
-                  <Text style={[styles.statLabel, { color: stat.c }]}>{stat.l}</Text>
-                  <Text style={styles.statValue}>{numFmt(stat.v)}</Text>
-                </View>
-              ))}
-            </View>
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Áreas com déficit de arborização</Text>
-              <Text style={styles.sectionSub}>{numFmt(deficitAreas.length)} áreas ainda precisam de intervenção</Text>
-              <View style={styles.listContent}>
-                {deficitAreas.slice(0, 5).map((area, index) => (
-                  <View key={area.idArea} style={styles.deficitRow}>
-                    <Text style={styles.deficitTitle}>{area.rua || area.bairro || area.cidade || 'Área'}</Text>
-                    <View style={[styles.badgeWrap, { backgroundColor: AREA_STATUS[area.statusArea]?.color }]}>
-                      <Text style={styles.badgeText}>{AREA_STATUS[area.statusArea]?.label}</Text>
+          <View style={styles.overview}>
+            {!!dashboard.data && (
+              <View style={styles.statsGrid}>
+                {[
+                  {
+                    l: 'Usuários',
+                    v: dashboard.data.totalUsuarios,
+                    icon: 'people-outline',
+                    color: COLORS.info,
+                    bg: COLORS.infoSoft,
+                  },
+                  {
+                    l: 'Áreas',
+                    v: dashboard.data.totalAreas,
+                    icon: 'leaf-outline',
+                    color: COLORS.primary,
+                    bg: COLORS.primarySoft,
+                  },
+                  {
+                    l: 'Denúncias',
+                    v: dashboard.data.totalDenuncias,
+                    icon: 'alert-triangle-outline',
+                    color: COLORS.error,
+                    bg: COLORS.errorSoft,
+                  },
+                  {
+                    l: 'Projetos',
+                    v: dashboard.data.totalProjetos,
+                    icon: 'sprout-outline',
+                    color: COLORS.success,
+                    bg: COLORS.successSoft,
+                  },
+                ].map((s) => (
+                  <View
+                    key={s.l}
+                    style={[styles.overviewStat, { backgroundColor: s.bg }]}
+                  >
+                    <Ionicons name={s.icon} size={17} color={s.color} />
+                    <View>
+                      <Text style={styles.overviewValue}>{numFmt(s.v)}</Text>
+                      <Text style={styles.overviewLabel}>{s.l}</Text>
                     </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <Card style={styles.overviewCard}>
+              <Text style={styles.overviewTitle}>
+                Áreas com déficit de arborização
+              </Text>
+              <Text style={styles.overviewSub}>
+                {numFmt(deficitAreas.length)} áreas ainda precisam de
+                intervenção
+              </Text>
+
+              <View style={styles.overviewList}>
+                {deficitAreas.slice(0, 5).map((area, index) => (
+                  <View
+                    key={area.idArea}
+                    style={[
+                      styles.inlineRow,
+                      index > 0 && styles.inlineRowBorder,
+                    ]}
+                  >
+                    <Text style={styles.inlineText} numberOfLines={1}>
+                      {area.rua || area.bairro || area.cidade}
+                    </Text>
+                    <StatusBadge
+                      status={area.statusArea}
+                      map={AREA_ADMIN}
+                    />
                   </View>
                 ))}
                 {deficitAreas.length === 0 && (
-                  <Text style={styles.emptyHint}>Nenhuma área com déficit.</Text>
+                  <Text style={styles.emptyText}>
+                    Nenhuma área com déficit.
+                  </Text>
                 )}
               </View>
-            </View>
-            <View style={styles.card} style={{ marginTop: 12 }}>
-              <Text style={styles.sectionTitle}>ONGs cadastradas</Text>
-              <Text style={styles.sectionSub}>{numFmt(ongs.length)} organizações</Text>
-              <View style={styles.listContent}>
-                {ongs.map((ong, index) => (
-                  <View key={ong.idOng} style={styles.ongListRow}>
-                    <Text style={styles.ongListTitle}>{formatUserName(ong)} — {ong.regiao || 'Cidade Tiradentes'}</Text>
-                    <View style={[styles.badgeWrap, { backgroundColor: ONG_STATUS[ong.statusOng]?.color }]}>
-                      <Text style={styles.badgeText}>{ONG_STATUS[ong.statusOng]?.label}</Text>
-                    </View>
+            </Card>
+
+            <Card style={styles.overviewCard}>
+              <Text style={styles.overviewTitle}>
+                ONGs cadastradas · {numFmt(ongs.data?.length)}
+              </Text>
+
+              <View style={styles.overviewList}>
+                {(ongs.data ?? []).map((ong, index) => (
+                  <View
+                    key={ong.idOng}
+                    style={[
+                      styles.inlineRow,
+                      index > 0 && styles.inlineRowBorder,
+                    ]}
+                  >
+                    <Text style={styles.inlineText} numberOfLines={1}>
+                      {ongName(ong)} —{' '}
+                      {ong.regiao || 'Cidade Tiradentes'}
+                    </Text>
+                    <StatusBadge status={ong.statusOng} map={ONG_STATUS} />
                   </View>
                 ))}
-                {ongs.length === 0 && (
-                  <Text style={styles.emptyHint}>Nenhuma ONG cadastrada.</Text>
+                {(ongs.data ?? []).length === 0 && (
+                  <Text style={styles.emptyText}>
+                    Nenhuma ONG cadastrada.
+                  </Text>
                 )}
               </View>
-            </View>
+            </Card>
           </View>
         )}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
-
-
