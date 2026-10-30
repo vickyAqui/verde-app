@@ -51,13 +51,13 @@ export default function NGOsScreen() {
   const [createError, setCreateError] = useState(null);
 
   const ongs = useFetch(() =>
-    api.get('/ongs?statusOng=aprovada').then((r) => r.ongs ?? []),
+    api.get('/ongs?statusOng=aprovada').then((r) => r.data.ongs ?? []),
   );
   const projetos = useFetch(() =>
-    api.get('/projetos').then((r) => r.projetos ?? []),
+    api.get('/projetos').then((r) => r.data.projetos ?? []),
   );
   const followedOngs = useFetch(() =>
-    api.get('/ongs/following').then((r) => r.ongs ?? []),
+    api.get('/ongs/following').then((r) => r.data.ongs ?? []),
   );
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function NGOsScreen() {
 
     try {
       if (isFollowing) {
-        await api.del(`/ongs/${id}/follow`);
+        await api.delete(`/ongs/${id}/follow`);
         setFollowing((current) => {
           const next = new Set(current);
           next.delete(id);

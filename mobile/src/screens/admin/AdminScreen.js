@@ -64,17 +64,19 @@ export default function AdminScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
 
   const dashboard = useFetch(() =>
-    api.get('/admin/dashboard').then((r) => r.stats ?? null),
+    api.get('/admin/dashboard').then((r) => r.data.stats ?? null),
   );
   const denuncias = useFetch(() =>
-    api.get('/admin/denuncias').then((r) => r.denuncias ?? []),
+    api.get('/admin/denuncias').then((r) => r.data.denuncias ?? []),
   );
   const areas = useFetch(() =>
-    api.get('/admin/areas').then((r) => r.areas ?? []),
+    api.get('/admin/areas').then((r) => r.data.areas ?? []),
   );
-  const ongs = useFetch(() => api.get('/admin/ongs').then((r) => r.ongs ?? []));
+  const ongs = useFetch(() =>
+    api.get('/admin/ongs').then((r) => r.data.ongs ?? []),
+  );
   const projetos = useFetch(() =>
-    api.get('/admin/projetos').then((r) => r.projetos ?? []),
+    api.get('/admin/projetos').then((r) => r.data.projetos ?? []),
   );
 
   const pendingOngs = useMemo(
@@ -144,7 +146,7 @@ export default function AdminScreen({ navigation }) {
       if (action === 'approve') {
         await api.put(`/admin/ong/${id}/approve`);
       } else {
-        await api.del(`/admin/ong/${id}/approve`);
+        await api.delete(`/admin/ong/${id}/approve`);
       }
       setSelectedOngId(null);
       ongs.reload();

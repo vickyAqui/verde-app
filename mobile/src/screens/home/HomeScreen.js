@@ -71,13 +71,15 @@ export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
 
-  const areas = useFetch(() => api.get('/areas').then((r) => r.areas ?? []));
-  const denuncias = useFetch(() =>
-    api.get('/denuncias').then((r) => r.denuncias ?? []),
+  const areas = useFetch(() =>
+    api.get('/areas').then((r) => r.data.areas ?? []),
   );
-  const ongs = useFetch(() => api.get('/ongs').then((r) => r.ongs ?? []));
+  const denuncias = useFetch(() =>
+    api.get('/denuncias').then((r) => r.data.denuncias ?? []),
+  );
+  const ongs = useFetch(() => api.get('/ongs').then((r) => r.data.ongs ?? []));
   const projetos = useFetch(() =>
-    api.get('/projetos').then((r) => r.projetos ?? []),
+    api.get('/projetos').then((r) => r.data.projetos ?? []),
   );
 
   const areaList = areas.data ?? [];

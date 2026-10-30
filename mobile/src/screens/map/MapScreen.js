@@ -71,9 +71,11 @@ export default function MapScreen({ navigation }) {
   const [locError, setLocError] = useState(null);
   const [fitSignal, setFitSignal] = useState(0);
 
-  const areas = useFetch(() => api.get('/areas').then((r) => r.areas ?? []));
+  const areas = useFetch(() =>
+    api.get('/areas').then((r) => r.data.areas ?? []),
+  );
   const denuncias = useFetch(() =>
-    api.get('/denuncias').then((r) => r.denuncias ?? []),
+    api.get('/denuncias').then((r) => r.data.denuncias ?? []),
   );
 
   const areaList = areas.data ?? [];

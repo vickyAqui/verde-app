@@ -52,9 +52,11 @@ export default function DenunciarScreen({ navigation }) {
   const [error, setError] = useState(null);
   const [protocol, setProtocol] = useState(null);
 
-  const areas = useFetch(() => api.get('/areas').then((r) => r.areas ?? []));
+  const areas = useFetch(() =>
+    api.get('/areas').then((r) => r.data.areas ?? []),
+  );
   const denuncias = useFetch(() =>
-    api.get('/denuncias').then((r) => r.denuncias ?? []),
+    api.get('/denuncias').then((r) => r.data.denuncias ?? []),
   );
 
   useEffect(() => {

@@ -53,11 +53,13 @@ export default function ProfileScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
 
   const denuncias = useFetch(() =>
-    api.get('/denuncias').then((r) => r.denuncias ?? []),
+    api.get('/denuncias').then((r) => r.data.denuncias ?? []),
   );
-  const areas = useFetch(() => api.get('/areas').then((r) => r.areas ?? []));
+  const areas = useFetch(() =>
+    api.get('/areas').then((r) => r.data.areas ?? []),
+  );
   const projetos = useFetch(() =>
-    api.get('/projetos').then((r) => r.projetos ?? []),
+    api.get('/projetos').then((r) => r.data.projetos ?? []),
   );
 
   const mine = useMemo(
