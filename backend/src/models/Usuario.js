@@ -21,7 +21,7 @@ const Usuario = sequelize.define('Usuario', {
     allowNull: false,
     unique: true,
     lowercase: true,
-    validate: { isEmail: true },
+    // Validação de formato removida temporariamente para demonstração.
   },
   senha: {
     type: DataTypes.STRING(255),

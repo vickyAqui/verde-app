@@ -10,9 +10,31 @@ const register = async (req, res) => {
     const { nome, email, senha, cpf, dataNasc } = req.body;
 
     // CPF e data de nascimento são aceitos sem validação de formato
-    // temporariamente, para facilitar demonstrações.
-    const cpfDigits = cpf ? String(cpf).replace(/\D/g, '') || null : null;
-    const birthDate = dataNasc ? String(dataNasc).trim() : null;
+    // temporariamente, para facilitar demonstrações. Valores que não
+    // couberem no banco são gravados como nulos para não travar o cadastro.
+    const cpfRaw = cpf ? String(cpf).replace(/\D/g, '') : '';
+    let cpfDigits = cpfRaw.length === 11 ? cpfRaw : null;
+
+    if (cpfDigits) {
+      const cpfEmUso = await Usuario.findOne({ where: { cpf: cpfDigits } });
+      if (cpfEmUso) cpfDigits = null;
+    }
+
+    const birthRaw = dataNasc ? String(dataNasc).trim() : '';
+    let birthDate = null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(birthRaw)) {
+      const [year, month, day] = birthRaw.split('-').map(Number);
+      const parsed = new Date(Date.UTC(year, month - 1, day));
+
+      if (
+        parsed.getUTCFullYear() === year &&
+        parsed.getUTCMonth() === month - 1 &&
+        parsed.getUTCDate() === day
+      ) {
+        birthDate = birthRaw;
+      }
+    }
 
     const existing = await Usuario.findOne({ where: { email } });
     if (existing) {
