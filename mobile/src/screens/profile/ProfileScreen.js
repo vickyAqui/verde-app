@@ -62,6 +62,16 @@ export default function ProfileScreen({ navigation }) {
     api.get('/projetos').then((r) => r.data.projetos ?? []),
   );
 
+  const myOng = useFetch(() =>
+    api
+      .get('/ongs/me')
+      .then((r) => r.data.ong ?? null)
+      .catch((e) => {
+        if (e?.response?.status === 404) return null;
+        throw e;
+      }),
+  );
+
   const mine = useMemo(
     () =>
       (denuncias.data ?? []).filter(
@@ -81,7 +91,12 @@ export default function ProfileScreen({ navigation }) {
 
   const refreshAll = async () => {
     setRefreshing(true);
-    await Promise.all([denuncias.reload(), areas.reload(), projetos.reload()]);
+    await Promise.all([
+      denuncias.reload(),
+      areas.reload(),
+      projetos.reload(),
+      myOng.reload(),
+    ]);
     setRefreshing(false);
   };
 
@@ -140,7 +155,7 @@ export default function ProfileScreen({ navigation }) {
               activeOpacity={0.8}
             >
               <Ionicons name="shield" size={13} color={COLORS.white} />
-              <Text style={styles.adminLinkText}>Painel da ONG</Text>
+              <Text style={styles.adminLinkText}>Painel Admin</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -216,7 +231,31 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       {/* CTA ONG */}
-      {tipo === 'comum' && (
+      {myOng.data ? (
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.ongCta}
+            onPress={() => navigation.navigate('ONGDashboard')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.ongIcon}>
+              <Ionicons name="leaf" size={18} color={COLORS.onPrimary} />
+            </View>
+
+            <View style={styles.ongTextWrap}>
+              <Text style={styles.ongTitle}>Painel da ONG</Text>
+              <Text style={styles.ongSubtitle} numberOfLines={1}>
+                {myOng.data.nome} ·{' '}
+                {myOng.data.statusOng === 'aprovada'
+                  ? 'aprovada'
+                  : 'em análise'}
+              </Text>
+            </View>
+
+            <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
+          </TouchableOpacity>
+        </View>
+      ) : tipo === 'comum' && !myOng.loading && !myOng.error ? (
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.ongCta}
@@ -237,7 +276,7 @@ export default function ProfileScreen({ navigation }) {
             <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
-      )}
+      ) : null}
 
       {/* Configurações */}
       <View style={styles.section}>

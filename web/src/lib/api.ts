@@ -53,7 +53,27 @@ export type Projeto = {
   ong?: Pick<Ong, "idOng" | "nome" | "regiao">
 };
 
-const API_BASE_TEST = "http://localhost:3333/api"
+export type OngMembro = {
+  idOng_Usuario: number;
+  idOng: number;
+  idUsuario: number;
+  usuario?: Pick<Usuario, "idUsuario" | "nome" | "email">;
+};
+
+export type OngDashboard = {
+  ong: Ong;
+  stats: {
+    totalProjetos: number;
+    totalMembros: number;
+    totalDenuncias: number;
+    denunciasAbertas: number;
+    percentualMedio: number;
+  };
+  projetos: Projeto[];
+  membros: OngMembro[];
+  denuncias: Denuncia[];
+};
+
 const API_BASE = "https://verde-app-backend.onrender.com/api"
 
 const TOKEN_KEY = "@verde:token";

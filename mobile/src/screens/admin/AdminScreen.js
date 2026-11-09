@@ -198,7 +198,7 @@ export default function AdminScreen({ navigation }) {
           />
 
           <View style={styles.coverTitleWrap}>
-            <Text style={styles.coverEyebrow}>+Verde · Painel da ONG</Text>
+            <Text style={styles.coverEyebrow}>+Verde · Painel Admin</Text>
             <Text style={styles.coverTitle}>Dashboard</Text>
           </View>
         </View>

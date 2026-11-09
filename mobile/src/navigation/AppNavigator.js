@@ -10,6 +10,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import MainTabNavigator from './MainTabNavigator';
 import NGOsCreateScreen from '../screens/ngos/NGOsCreateScreen';
+import ONGDashboardScreen from '../screens/ngos/ONGDashboardScreen';
 import EducationScreen from '../screens/educacao/EducationScreen';
 import AdminScreen from '../screens/admin/AdminScreen';
 
@@ -54,6 +55,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Main" component={MainTabNavigator} />
           <Stack.Screen name="Educacao" component={EducationScreen} />
           <Stack.Screen name="CreateONGsScreen" component={NGOsCreateScreen} />
+          <Stack.Screen name="ONGDashboard" component={ONGDashboardScreen} />
           <Stack.Screen name="Admin" component={AdminScreen} />
         </>
       )}

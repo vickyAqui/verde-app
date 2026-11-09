@@ -49,7 +49,6 @@ export default function NGOsCreateScreen({ navigation }) {
   const [descricao, setDescricao] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
 
   const onSubmit = async () => {
     setError(null);
@@ -89,7 +88,7 @@ export default function NGOsCreateScreen({ navigation }) {
         telefone: telefoneDigits,
         descricao: descricao.trim(),
       });
-      setSubmitted(true);
+      navigation.replace('ONGDashboard');
     } catch (e) {
       setError(
         e?.response?.data?.error ||
@@ -100,38 +99,6 @@ export default function NGOsCreateScreen({ navigation }) {
       setBusy(false);
     }
   };
-
-  if (submitted) {
-    return (
-      <View
-        style={[
-          styles.successRoot,
-          { paddingTop: Math.max(insets.top, 12) + 40 },
-        ]}
-      >
-        <View style={styles.successIcon}>
-          <Ionicons
-            name="checkmark-circle"
-            size={34}
-            color={COLORS.success}
-          />
-        </View>
-
-        <View>
-          <Text style={styles.successTitle}>Solicitação enviada</Text>
-          <Text style={styles.successSub}>
-            Sua solicitação de cadastro foi encaminhada para análise da
-            administração.
-          </Text>
-        </View>
-
-        <Button
-          label="Voltar ao início"
-          onPress={() => navigation.navigate('Main')}
-        />
-      </View>
-    );
-  }
 
   return (
     <KeyboardAvoidingView

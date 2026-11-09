@@ -3,7 +3,6 @@ import { useNavigate } from "react-router";
 import {
   AlertTriangle,
   ArrowLeft,
-  CheckCircle2,
   MapPin,
   Phone,
   Send,
@@ -45,17 +44,6 @@ export function OngsCreateScreen() {
   const [descricao, setDescricao] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-
-  function resetForm() {
-    setNome("");
-    setRegiao("");
-    setCnpj("");
-    setTelefone("");
-    setDescricao("");
-    setError(null);
-    setSubmitted(false);
-  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -98,7 +86,7 @@ export function OngsCreateScreen() {
         descricao: descricao.trim(),
       });
 
-      setSubmitted(true);
+      navigate("/painel-ong", { replace: true });
     } catch (err) {
       setError(
         err instanceof Error
@@ -108,37 +96,6 @@ export function OngsCreateScreen() {
     } finally {
       setBusy(false);
     }
-  }
-
-  if (submitted) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-5 bg-[var(--background)] px-8 text-center">
-        <div className="flex size-16 items-center justify-center rounded-3xl bg-success/10 text-success">
-          <CheckCircle2 size={34} strokeWidth={1.6} />
-        </div>
-
-        <div>
-          <p className="font-display text-xl font-semibold text-foreground">
-            Solicitação enviada
-          </p>
-
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Sua solicitação de cadastro foi encaminhada para análise da
-            administração.
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => navigate("/")}
-            className="btn btn-primary text-sm font-semibold"
-          >
-            Voltar ao início
-          </button>
-
-        </div>
-      </div>
-    );
   }
 
   return (

@@ -1,4 +1,4 @@
-const { Ong, Usuario, Ong_Usuario } = require('../models');
+const { Ong, Usuario, Ong_Usuario, Projeto, Denuncia, Area } = require('../models');
 const { Op } = require('sequelize');
 
 const validDDDs = new Set([
@@ -258,4 +258,130 @@ const listFollowingONGs = async (req, res) => {
   }
 };
 
-module.exports = { listONGs, getONG, createONG, updateOng, deleteOng, followONG, unfollowONG, listFollowingONGs };
+async function findMyOng(idUsuario) {
+  return Ong.findOne({
+    where: { idUsuario },
+    include: [
+      { model: Usuario, as: 'usuario', attributes: ['idUsuario', 'nome', 'email'] },
+    ],
+    order: [['idOng', 'DESC']],
+  });
+}
+
+const getMyOng = async (req, res) => {
+  try {
+    const ong = await findMyOng(req.user.idUsuario);
+
+    if (!ong) {
+      return res.status(404).json({ error: 'Você ainda não cadastrou uma ONG.' });
+    }
+
+    return res.json({ ong });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao buscar sua ONG' });
+  }
+};
+
+const getMyOngDashboard = async (req, res) => {
+  try {
+    const ong = await findMyOng(req.user.idUsuario);
+
+    if (!ong) {
+      return res.status(404).json({ error: 'Você ainda não cadastrou uma ONG.' });
+    }
+
+    const [projetos, membros, denuncias] = await Promise.all([
+      Projeto.findAll({
+        where: { idOng: ong.idOng },
+        order: [['idProjeto', 'DESC']],
+      }),
+      Ong_Usuario.findAll({
+        where: { idOng: ong.idOng },
+        include: [
+          { model: Usuario, as: 'usuario', attributes: ['idUsuario', 'nome', 'email'] },
+        ],
+        order: [['idOng_Usuario', 'DESC']],
+      }),
+      Denuncia.findAll({
+        where: { idUsuario: ong.idUsuario },
+        include: [
+          { model: Usuario, as: 'usuario', attributes: ['idUsuario', 'nome'] },
+          {
+            model: Area,
+            as: 'area',
+            attributes: ['idArea', 'cidade', 'bairro', 'rua', 'latitude', 'longitude', 'raio', 'poligono', 'statusArea'],
+          },
+        ],
+        order: [['idDenuncia', 'DESC']],
+      }),
+    ]);
+
+    const percentualMedio = projetos.length
+      ? Math.round(
+          projetos.reduce(
+            (total, projeto) => total + Number(projeto.percentualConclusao || 0),
+            0,
+          ) / projetos.length,
+        )
+      : 0;
+
+    return res.json({
+      ong,
+      stats: {
+        totalProjetos: projetos.length,
+        totalMembros: membros.length,
+        totalDenuncias: denuncias.length,
+        denunciasAbertas: denuncias.filter((d) => d.statusDenuncia === 'aberta').length,
+        percentualMedio,
+      },
+      projetos,
+      membros,
+      denuncias,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao buscar o painel da ONG' });
+  }
+};
+
+const listMembros = async (req, res) => {
+  try {
+    const ong = await Ong.findByPk(req.params.id);
+
+    if (!ong) {
+      return res.status(404).json({ error: 'ONG não encontrada' });
+    }
+
+    const isAdmin = req.user.tipo === 'admin';
+    const isOwner = String(ong.idUsuario) === String(req.user.idUsuario);
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ error: 'Sem permissão para listar os membros desta ONG' });
+    }
+
+    const membros = await Ong_Usuario.findAll({
+      where: { idOng: ong.idOng },
+      include: [
+        { model: Usuario, as: 'usuario', attributes: ['idUsuario', 'nome', 'email'] },
+      ],
+      order: [['idOng_Usuario', 'DESC']],
+    });
+
+    return res.json({ membros });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao listar membros' });
+  }
+};
+
+module.exports = {
+  listONGs,
+  getONG,
+  createONG,
+  updateOng,
+  deleteOng,
+  followONG,
+  unfollowONG,
+  listFollowingONGs,
+  getMyOng,
+  getMyOngDashboard,
+  listMembros,
+};

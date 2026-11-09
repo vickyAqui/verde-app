@@ -159,7 +159,7 @@ export function AdminScreen() {
 
             <div className="text-right">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55">
-                +Verde · Painel da ONG
+                +Verde · Painel Admin
               </p>
               <h1 className="font-display text-lg font-semibold text-white">
                 Dashboard

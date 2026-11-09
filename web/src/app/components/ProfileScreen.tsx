@@ -9,9 +9,10 @@ import {
   LogOut,
   MapPin,
   Shield,
+  Sprout,
   Users,
 } from "lucide-react";
-import { api, type Area, type Denuncia, type Projeto } from "../../lib/api";
+import { ApiError, api, type Area, type Denuncia, type Ong, type Projeto } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useFetch } from "../../lib/use-fetch";
 import { Card, DataError, EmptyState, initials, Loading, num, StatusBadge } from "./ui";
@@ -29,6 +30,16 @@ export function ProfileScreen() {
   const denuncias = useFetch<Denuncia[]>(() => api.get("/denuncias").then((r) => r.denuncias));
   const areas = useFetch<Area[]>(() => api.get("/areas").then((r) => r.areas));
   const projetos = useFetch<Projeto[]>(() => api.get("/projetos").then((r) => r.projetos));
+
+  const myOng = useFetch<Ong | null>(() =>
+    api
+      .get<{ ong: Ong }>("/ongs/me")
+      .then((r) => r.ong)
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }),
+  );
 
   const mine = useMemo(
     () => (denuncias.data ?? []).filter((d) => d.usuario?.idUsuario === user?.idUsuario),
@@ -59,7 +70,7 @@ export function ProfileScreen() {
               to="/admin"
               className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/12 px-3.5 py-2 text-xs font-semibold text-white backdrop-blur"
             >
-              <Shield size={13} strokeWidth={2} /> Painel da ONG
+              <Shield size={13} strokeWidth={2} /> Painel Admin
             </Link>
           )}
         </div>
@@ -117,7 +128,32 @@ export function ProfileScreen() {
           </div>
         )}
       </div>
-      {tipo === "comum" && (
+      {myOng.data ? (
+        <div className="px-5 pt-5">
+          <button
+            onClick={() => navigate("/painel-ong")}
+            className="flex w-full items-center gap-3 rounded-2xl border border-primary/20 bg-primary/[0.08] px-4 py-3.5 text-left transition-colors hover:bg-primary/[0.14]"
+          >
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-content">
+              <Sprout size={18} strokeWidth={2} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground">
+                Painel da ONG
+              </p>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                {myOng.data.nome} ·{" "}
+                {myOng.data.statusOng === "aprovada"
+                  ? "aprovada"
+                  : "em análise"}
+              </p>
+            </div>
+
+            <ChevronRight size={18} className="text-primary" />
+          </button>
+        </div>
+      ) : tipo === "comum" && !myOng.loading && !myOng.error ? (
         <div className="px-5 pt-5">
           <button
             onClick={() => navigate("/ongs/create")}
@@ -139,7 +175,7 @@ export function ProfileScreen() {
             <ChevronRight size={18} className="text-primary" />
           </button>
         </div>
-      )}
+      ) : null}
 
       {/* Configure */}
       <div className="px-5 pt-5">

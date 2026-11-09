@@ -2,9 +2,12 @@
 
 App de mapeamento de áreas não verdes e conexão entre pessoas e ONGs de reflorestamento.
 
-# Link
+# Links
 
-https://verde-app-main.onrender.com/
+- **Aplicativo (online):** https://verde-app-main.onrender.com/
+- **Tela de cadastro:** https://verde-app-main.onrender.com/cadastro
+- **Repositório (GitHub):** https://github.com/vickyAqui/verde-app
+- **API (backend):** https://verde-app-backend.onrender.com/api
 
 ## Stack
 
@@ -359,10 +362,26 @@ Base URL: `http://localhost:3333/api`
 | Método | Rota | Descrição | Auth |
 |--------|------|-----------|------|
 | GET | `/ongs` | Listar ONGs | Sim |
+| GET | `/ongs/following` | Listar ONGs que o usuário segue | Sim |
+| GET | `/ongs/me` | Buscar a ONG do usuário logado | Sim |
+| GET | `/ongs/me/dashboard` | Painel da ONG (dados, estatísticas, projetos, seguidores e denúncias) | Sim |
 | GET | `/ongs/:id` | Buscar ONG | Sim |
-| POST | `/ongs` | Cadastrar ONG | Sim |
+| GET | `/ongs/:id/membros` | Listar seguidores da ONG | Dono ou admin |
+| POST | `/ongs` | Cadastrar ONG (fica pendente de aprovação) | Sim |
+| PUT | `/ongs/:id` | Atualizar ONG | Dono ou admin |
+| DELETE | `/ongs/:id` | Remover ONG | Dono ou admin |
+| POST | `/ongs/:id/follow` | Seguir ONG | Sim |
+| DELETE | `/ongs/:id/follow` | Deixar de seguir ONG | Sim |
 
-**Filtro:** `?regiao=Cidade Tiradentes`
+**Filtro:** `?regiao=Cidade Tiradentes&statusOng=aprovada`
+
+### Fluxo de cadastro de ONG
+
+1. Usuário comum envia o cadastro em `POST /ongs` (status `pendente`).
+2. O app redireciona automaticamente para `/painel-ong` (web) ou `ONGDashboard` (mobile).
+3. O painel funciona mesmo com a ONG pendente e exibe o aviso de análise.
+4. Um admin aprova em `PUT /admin/ong/:id/approve`; o usuário passa a ter nível `ong`.
+5. Com a ONG aprovada, o painel libera a criação de projetos e a ONG aparece na lista pública.
 
 ### Projetos
 
@@ -494,7 +513,9 @@ O token é retornado no login/register.
 | RegisterScreen | Cadastro de usuário |
 | HomeScreen | Dashboard com resumo |
 | AreasScreen | Lista de áreas não verdes |
-| NGOsScreen | Lista de ONGs |
+| NGOsScreen | Lista de ONGs e projetos |
+| NGOsCreateScreen | Cadastro de ONG |
+| ONGDashboardScreen | Painel da ONG (projetos, seguidores e denúncias) |
 | ProjetosScreen | Projetos do usuário (com % conclusão) |
 | DenunciasScreen | Lista de denúncias |
 | ProfileScreen | Perfil + logout |

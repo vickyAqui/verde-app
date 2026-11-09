@@ -1,11 +1,26 @@
 const express = require('express');
-const { listONGs, getONG, createONG, listFollowingONGs, followONG, unfollowONG, updateOng, deleteOng } = require('../controllers/ngo.controller');
+const {
+  listONGs,
+  getONG,
+  createONG,
+  listFollowingONGs,
+  followONG,
+  unfollowONG,
+  updateOng,
+  deleteOng,
+  getMyOng,
+  getMyOngDashboard,
+  listMembros,
+} = require('../controllers/ngo.controller');
 const { authMiddleware } = require('../middlewares/auth');
 
 const router = express.Router();
 
 router.get('/', authMiddleware, listONGs);
 router.get('/following', authMiddleware, listFollowingONGs);
+router.get('/me', authMiddleware, getMyOng);
+router.get('/me/dashboard', authMiddleware, getMyOngDashboard);
+router.get('/:id/membros', authMiddleware, listMembros);
 router.get('/:id', authMiddleware, getONG);
 router.post('/', authMiddleware, createONG);
 router.put('/:id', authMiddleware, updateOng)
