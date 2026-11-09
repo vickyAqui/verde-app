@@ -95,7 +95,7 @@ export function RegisterScreen() {
               <label className="form-control mb-3">
                 <span className="mb-1.5 text-xs font-semibold text-muted-foreground">E-mail</span>
                 <input
-                  type="email"
+                  type="text"
                   required
                   autoComplete="email"
                   value={form.email}

@@ -59,7 +59,7 @@ export function LoginScreen() {
                 <div className="relative">
                   <Mail size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
-                    type="email"
+                    type="text"
                     required
                     autoComplete="email"
                     value={email}

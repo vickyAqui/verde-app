@@ -66,26 +66,18 @@ export default function NGOsCreateScreen({ navigation }) {
       return;
     }
 
-    const cnpjDigits = cnpj.replace(/\D/g, '');
-    const telefoneDigits = telefone.replace(/\D/g, '');
-
-    if (cnpjDigits.length !== 14) {
-      setError('Informe um CNPJ válido com 14 dígitos.');
-      return;
-    }
-
-    if (telefoneDigits.length < 10 || telefoneDigits.length > 11) {
-      setError('Informe um telefone válido.');
-      return;
-    }
+    // Validação de formato de CNPJ/telefone removida temporariamente
+    // para demonstração: qualquer valor preenchido é aceito.
+    const cnpjValue = cnpj.trim();
+    const telefoneValue = telefone.trim();
 
     setBusy(true);
     try {
       await api.post('/ongs', {
         nome: nome.trim(),
         regiao: regiao.trim(),
-        cnpj: cnpjDigits,
-        telefone: telefoneDigits,
+        cnpj: cnpjValue,
+        telefone: telefoneValue,
         descricao: descricao.trim(),
       });
       navigation.replace('ONGDashboard');

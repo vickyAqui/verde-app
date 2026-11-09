@@ -1,60 +1,7 @@
 const { Ong, Usuario, Ong_Usuario, Projeto, Denuncia, Area } = require('../models');
 const { Op } = require('sequelize');
 
-const validDDDs = new Set([
-  '11', '12', '13', '14', '15', '16', '17', '18', '19',
-  '21', '22', '24', '27', '28',
-  '31', '32', '33', '34', '35', '37', '38',
-  '41', '42', '43', '44', '45', '46', '47', '48', '49',
-  '51', '53', '54', '55',
-  '61', '62', '63', '64', '65', '66', '67', '68', '69',
-  '71', '73', '74', '75', '77', '79',
-  '81', '82', '83', '84', '85', '86', '87', '88', '89',
-  '91', '92', '93', '94', '95', '96', '97', '98', '99',
-]);
-
-function isValidPhone(value) {
-  const digits = String(value ?? '').replace(/\D/g, '');
-
-  if (![10, 11].includes(digits.length) || !validDDDs.has(digits.slice(0, 2))) {
-    return false;
-  }
-
-  const subscriber = digits.slice(2);
-
-  return digits.length === 11
-    ? subscriber.startsWith('9')
-    : /^[2-5]/.test(subscriber);
-}
-
-function isValidCNPJ(value) {
-  const digits = String(value ?? '').replace(/\D/g, '');
-
-  if (digits.length !== 14 || /^(\d)\1{13}$/.test(digits)) {
-    return false;
-  }
-
-  const calculateDigit = (base, weights) => {
-    const sum = base
-      .split('')
-      .reduce((total, digit, index) => total + Number(digit) * weights[index], 0);
-
-    const remainder = sum % 11;
-    return remainder < 2 ? 0 : 11 - remainder;
-  };
-
-  const firstDigit = calculateDigit(
-    digits.slice(0, 12),
-    [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
-  );
-
-  const secondDigit = calculateDigit(
-    digits.slice(0, 12) + firstDigit,
-    [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
-  );
-
-  return digits.endsWith(`${firstDigit}${secondDigit}`);
-}
+// Validações de CNPJ e telefone removidas temporariamente para demonstração.
 const listONGs = async (req, res) => {
   try {
     const { regiao, statusOng } = req.query;
@@ -112,18 +59,24 @@ const createONG = async (req, res) => {
       return res.status(409).json({ error: 'ONG já inserida no sistema' });
     }
 
-    const cnpjDigits = cnpj.replace(/\D/g, '');
-    const telefoneDigits = telefone.replace(/\D/g, '');
+    const cnpjValue = String(cnpj ?? '').trim();
+    const telefoneValue = String(telefone ?? '').trim();
 
-    if (!isValidCNPJ(cnpjDigits)) { 
-      return res.status(400).json({ error: 'CNPJ inválido.' }) 
+    if (!nome || !regiao || !cnpjValue || !telefoneValue || !descricao) {
+      return res.status(400).json({
+        error: 'Preencha o nome, a região, o CNPJ, o telefone e a descrição da ONG.',
+      });
     }
 
-    if (!isValidPhone(telefoneDigits)) { 
-      return res.status(400).json({ error: 'Telefone inválido.' }) 
-    }
-
-    const ong = await Ong.create({ idUsuario, nome, regiao, cnpj, telefone, descricao, statusOng });
+    const ong = await Ong.create({
+      idUsuario,
+      nome,
+      regiao,
+      cnpj: cnpjValue,
+      telefone: telefoneValue,
+      descricao,
+      statusOng,
+    });
 
     return res.status(201).json({ ong });
   } catch (err) {

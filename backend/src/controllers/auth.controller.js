@@ -5,56 +5,14 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 };
 
-const isValidCPF = (value) => {
-  const cpf = String(value ?? '').replace(/\D/g, '');
-  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) { return false }
-
-  const calculateDigit = (digits, weight) => {
-    const sum = digits
-      .split('')
-      .reduce((total, digit, index) => total + Number(digit) * (weight - index), 0);
-
-    const remainder = (sum * 10) % 11;
-    return remainder === 10 ? 0 : remainder;
-  };
-
-  const firstDigit = calculateDigit(cpf.slice(0, 9), 10);
-  const secondDigit = calculateDigit(cpf.slice(0, 10), 11);
-
-  return cpf.endsWith(`${firstDigit}${secondDigit}`);
-};
-
-const isValidBirthDate = (value) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) { return false }
-
-  const [year, month, day] = value.split('-').map(Number);
-  if (year < 1900) { return false }
-
-  const date = new Date(Date.UTC(year, month - 1, day));
-
-  const isRealDate =
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day;
-
-  const today = new Date().toISOString().slice(0, 10);
-
-  return isRealDate && value <= today;
-};
-
 const register = async (req, res) => {
   try {
     const { nome, email, senha, cpf, dataNasc } = req.body;
 
-    const cpfDigits = cpf ? String(cpf).replace(/\D/g, '') : null;
+    // CPF e data de nascimento são aceitos sem validação de formato
+    // temporariamente, para facilitar demonstrações.
+    const cpfDigits = cpf ? String(cpf).replace(/\D/g, '') || null : null;
     const birthDate = dataNasc ? String(dataNasc).trim() : null;
-
-    if (cpfDigits && !isValidCPF(cpfDigits)) {
-      return res.status(400).json({ error: 'CPF inválido.' });
-    }
-    if (birthDate && !isValidBirthDate(birthDate)) {
-      return res.status(400).json({ error: 'Data de nascimento inválida. Use o formato AAAA-MM-DD e informe uma data real.' });
-    }
 
     const existing = await Usuario.findOne({ where: { email } });
     if (existing) {
