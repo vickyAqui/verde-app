@@ -310,280 +310,281 @@ export function MapScreen() {
           />
         </div>
       </div>
-
-      {/* ── Camada + filtros ── */}
-      <div className="flex flex-col gap-2.5 border-b border-black/[0.06] px-4 py-3">
-        <div className="flex rounded-xl bg-base-200/70 p-1">
-          {([["areas", `${num(areaList.length)} áreas`], ["denuncias", `${num(denList.length)} denúncias`]] as [Tab, string][]).map(([k, l]) => (
-            <button
-              key={k}
-              onClick={() => changeTab(k)}
-              className={`flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors ${
-                tab === k ? "bg-white text-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1.5 overflow-x-auto">
-          {(tab === "areas" ? AREA_FILTERS : DEN_FILTERS).map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                filter === f.key
-                  ? "bg-primary text-white"
-                  : "bg-base-200/70 text-muted-foreground hover:bg-base-200"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Mapa real com áreas demarcadas ── */}
-      <div className="relative h-[42vh] shrink-0 overflow-hidden">
-        <MapContainer
-          center={[CT_CENTER.lat, CT_CENTER.lng]}
-          zoom={13}
-          minZoom={11}
-          zoomControl={false}
-          attributionControl={false}
-          className="h-full w-full"
-        >
-          <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <MapController user={userPos} />
-          <FitAll points={fitPoints} signal={fitSignal} />
-          <FocusSelected row={selected} />
-
-          {markers.map((r) => {
-            const isArea = r.kind === "area";
-            const color = isArea
-              ? (AREA_COLORS[r.status] ?? AREA_COLORS.identificada)
-              : "#C9731D";
-            const pulse = selected?.key === r.key;
-            const raio = raioOf(r.status, r.raio);
-            const shapeOpts = {
-              color,
-              weight: pulse ? 3 : 2,
-              opacity: 0.95,
-              fillColor: color,
-              fillOpacity: pulse ? 0.35 : 0.22,
-              dashArray: isArea && r.status === "reflorestada" ? undefined : pulse ? undefined : "6 4",
-            };
-            const popupAddr = r.sub;
-            return (
-              <span key={r.key}>
-                {r.poligono ? (
-                  <Polygon positions={r.poligono} pathOptions={shapeOpts} eventHandlers={{ click: () => setSelected(r) }} />
-                ) : (
-                  <Circle center={[r.lat!, r.lng!]} radius={raio} pathOptions={shapeOpts} eventHandlers={{ click: () => setSelected(r) }} />
-                )}
-                <Marker
-                  position={[r.lat!, r.lng!]}
-                  icon={pulse ? pinIcon(color, "✓") : pinIcon(color, isArea ? "" : "!")}
-                  eventHandlers={{ click: () => setSelected(r) }}
-                >
-                  <Popup>
-                    <div style={{ minWidth: 190 }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#6b7280" }}>
-                        {isArea ? "Área demarcada" : "Denúncia"}
-                      </p>
-                      <p style={{ fontSize: 14, fontWeight: 700, margin: "4px 0 2px" }}>{r.title}</p>
-                      <p style={{ fontSize: 12, color: "#6b7280", display: "flex", alignItems: "center", gap: 4 }}>
-                        <MapPin size={11} /> {popupAddr}
-                      </p>
-                      <p style={{ fontSize: 12, marginTop: 6 }}>
-                        Status: <b>{(isArea ? AREA_STATUS[r.status]?.label : DEN_STATUS[r.status]?.label) ?? r.status}</b>
-                        {isArea && (
-                          <>
-                            <br />Cobertura: <b>{r.poligono ? "polígono irregular" : fmtAreaM2(raio)}</b>
-                            <br />Denúncias: <b>{r.denunciasCount ?? 0}</b>
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </Popup>
-                </Marker>
-              </span>
-            );
-          })}
-
-          {userPos && (
-            <>
-              <Circle center={[userPos.lat, userPos.lng]} radius={1800} pathOptions={{ color: "#2563EB", weight: 1.5, opacity: 0.8, fillColor: "#2563EB", fillOpacity: 0.08 }} />
-              <Marker position={[userPos.lat, userPos.lng]} icon={userIcon()} />
-            </>
-          )}
-        </MapContainer>
-
-        {/* Controles */}
-        <div className="absolute right-3 top-3 z-[600] flex flex-col gap-2">
-          <button
-            onClick={locate}
-            disabled={locating}
-            className="flex size-11 items-center justify-center rounded-full border border-black/[0.07] bg-white/95 text-primary shadow-[0_2px_12px_rgba(20,36,27,0.18)] disabled:opacity-60"
-            aria-label="Minha localização"
-            title="Minha localização"
-          >
-            {locating ? <Crosshair size={18} className="animate-spin" /> : <Navigation size={18} />}
-          </button>
-          <button
-            onClick={() => setFitSignal((s) => s + 1)}
-            disabled={markers.length === 0}
-            className="flex size-11 items-center justify-center rounded-full border border-black/[0.07] bg-white/95 text-primary shadow-[0_2px_12px_rgba(20,36,27,0.18)] disabled:opacity-50"
-            aria-label="Ver todas as áreas"
-            title="Ver todas as áreas"
-          >
-            <Expand size={18} />
-          </button>
-        </div>
-
-        {userPos && (
-          <span className="absolute left-3 top-3 z-[600] flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold text-foreground shadow-[0_2px_10px_rgba(20,36,27,0.15)]">
-            <span className="size-2 rounded-full bg-blue-600" /> Você está aqui
-          </span>
-        )}
-
-        {/* Legenda */}
-        <div className="absolute bottom-3 left-3 z-[600] rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-[0_2px_10px_rgba(20,36,27,0.15)] backdrop-blur">
-          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Demarcação</p>
-          <div className="flex flex-col gap-1">
-            <span className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
-              <span className="size-2.5 rounded-full" style={{ background: AREA_COLORS.identificada }} /> Déficit
-            </span>
-            <span className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
-              <span className="size-2.5 rounded-full" style={{ background: AREA_COLORS["em tratamento"] }} /> Em tratamento
-            </span>
-            <span className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
-              <span className="size-2.5 rounded-full" style={{ background: AREA_COLORS.reflorestada }} /> Reflorestada
-            </span>
+      <main className="min-h-0 flex-1 overflow-y-auto">
+        {/* ── Camada + filtros ── */}
+        <div className="flex flex-col gap-2.5 border-b border-black/[0.06] px-4 py-3">
+          <div className="flex rounded-xl bg-base-200/70 p-1">
+            {([["areas", `${num(areaList.length)} áreas`], ["denuncias", `${num(denList.length)} denúncias`]] as [Tab, string][]).map(([k, l]) => (
+              <button
+                key={k}
+                onClick={() => changeTab(k)}
+                className={`flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors ${
+                  tab === k ? "bg-white text-foreground shadow-sm" : "text-muted-foreground"
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto">
+            {(tab === "areas" ? AREA_FILTERS : DEN_FILTERS).map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  filter === f.key
+                    ? "bg-primary text-white"
+                    : "bg-base-200/70 text-muted-foreground hover:bg-base-200"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <span className="absolute bottom-3 right-3 z-[600] rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">
-          {num(markers.length)} demarcada{markers.length === 1 ? "" : "s"}
-        </span>
-      </div>
+        {/* ── Mapa real com áreas demarcadas ── */}
+        <div className="relative h-[42vh] shrink-0 overflow-hidden">
+          <MapContainer
+            center={[CT_CENTER.lat, CT_CENTER.lng]}
+            zoom={13}
+            minZoom={11}
+            zoomControl={false}
+            attributionControl={false}
+            className="h-full w-full"
+          >
+            <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <MapController user={userPos} />
+            <FitAll points={fitPoints} signal={fitSignal} />
+            <FocusSelected row={selected} />
 
-      {locError && (
-        <p className="flex items-center gap-2 bg-error/10 px-4 py-2 text-xs font-medium text-error">
-          <AlertTriangle size={13} className="shrink-0" /> {locError}
-        </p>
-      )}
-      {unmapped > 0 && !loading && (
-        <p className="flex items-center gap-2 bg-warning/10 px-4 py-2 text-xs font-medium text-warning">
-          <MapPin size={13} className="shrink-0" />
-          {num(unmapped)} registro{unmapped === 1 ? "" : "s"} sem coordenadas — {tab === "areas" ? "edite a área informando latitude/longitude." : "a área da denúncia ainda não foi geocodificada."}
-        </p>
-      )}
-
-      {/* ── Lista (mais próximas) ── */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-3">
-        {loading ? (
-          <Loading label="Carregando…" />
-        ) : error ? (
-          <DataError error={error} onRetry={() => { areas.reload(); denuncias.reload(); }} />
-        ) : sortedRows.length === 0 ? (
-          <EmptyState title="Nada por aqui" hint="Ajuste a busca ou os filtros." />
-        ) : (
-          <>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {userPos ? "Mais próximas de você" : "Áreas e denúncias"}
-              {userPos && (
-                <span className="ml-1.5 font-normal normal-case text-muted-foreground/70">
-                  · ordenado por distância
-                </span>
-              )}
-            </p>
-            <div className="flex flex-col gap-2">
-              {sortedRows.map((r) => {
-                const dist =
-                  userPos && r.lat !== null && r.lng !== null
-                    ? haversineM(userPos.lat, userPos.lng, r.lat, r.lng)
-                    : null;
-                const active = selected?.key === r.key;
-                const noGeo = r.lat === null || r.lng === null;
-                return (
-                  <button
-                    key={r.key}
-                    onClick={() => setSelected(active ? null : r)}
-                    className={`flex items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors ${
-                      active
-                        ? "border-primary/40 bg-primary/[0.06]"
-                        : "border-black/[0.06] bg-white"
-                    }`}
+            {markers.map((r) => {
+              const isArea = r.kind === "area";
+              const color = isArea
+                ? (AREA_COLORS[r.status] ?? AREA_COLORS.identificada)
+                : "#C9731D";
+              const pulse = selected?.key === r.key;
+              const raio = raioOf(r.status, r.raio);
+              const shapeOpts = {
+                color,
+                weight: pulse ? 3 : 2,
+                opacity: 0.95,
+                fillColor: color,
+                fillOpacity: pulse ? 0.35 : 0.22,
+                dashArray: isArea && r.status === "reflorestada" ? undefined : pulse ? undefined : "6 4",
+              };
+              const popupAddr = r.sub;
+              return (
+                <span key={r.key}>
+                  {r.poligono ? (
+                    <Polygon positions={r.poligono} pathOptions={shapeOpts} eventHandlers={{ click: () => setSelected(r) }} />
+                  ) : (
+                    <Circle center={[r.lat!, r.lng!]} radius={raio} pathOptions={shapeOpts} eventHandlers={{ click: () => setSelected(r) }} />
+                  )}
+                  <Marker
+                    position={[r.lat!, r.lng!]}
+                    icon={pulse ? pinIcon(color, "✓") : pinIcon(color, isArea ? "" : "!")}
+                    eventHandlers={{ click: () => setSelected(r) }}
                   >
-                    <span
-                      className="size-3 shrink-0 rounded-full"
-                      style={{
-                        background:
-                          r.kind === "area"
-                            ? (AREA_COLORS[r.status] ?? AREA_COLORS.identificada)
-                            : "#C9731D",
-                        opacity: noGeo ? 0.35 : 1,
-                      }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">{r.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {r.sub}
-                        {r.kind === "area" && !noGeo && (
-                          <span className="font-medium"> · {r.poligono ? "polígono" : fmtAreaM2(raioOf(r.status, r.raio))}</span>
-                        )}
-                        {noGeo && <span className="font-medium"> · sem mapa</span>}
-                        {dist !== null && <span className="font-medium text-primary"> · {fmtDist(dist)}</span>}
-                      </p>
-                    </div>
-                    <StatusBadge
-                      status={r.status}
-                      map={r.kind === "area" ? AREA_STATUS : DEN_STATUS}
-                    />
-                  </button>
-                );
-              })}
-            </div>
+                    <Popup>
+                      <div style={{ minWidth: 190 }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#6b7280" }}>
+                          {isArea ? "Área demarcada" : "Denúncia"}
+                        </p>
+                        <p style={{ fontSize: 14, fontWeight: 700, margin: "4px 0 2px" }}>{r.title}</p>
+                        <p style={{ fontSize: 12, color: "#6b7280", display: "flex", alignItems: "center", gap: 4 }}>
+                          <MapPin size={11} /> {popupAddr}
+                        </p>
+                        <p style={{ fontSize: 12, marginTop: 6 }}>
+                          Status: <b>{(isArea ? AREA_STATUS[r.status]?.label : DEN_STATUS[r.status]?.label) ?? r.status}</b>
+                          {isArea && (
+                            <>
+                              <br />Cobertura: <b>{r.poligono ? "polígono irregular" : fmtAreaM2(raio)}</b>
+                              <br />Denúncias: <b>{r.denunciasCount ?? 0}</b>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                </span>
+              );
+            })}
 
-            {/* ── Ação do selecionado ── */}
-            {selected && (
-              <Card className="mt-3 !border-primary/30 p-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                  {selected.kind === "area" ? "Área selecionada" : "Denúncia selecionada"}
-                </p>
-                <p className="mt-1.5 font-display text-lg font-semibold leading-snug text-foreground">
-                  {selected.title}
-                </p>
-                <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                  {selected.sub}
-                  {selected.kind === "area" && selected.lat !== null && (
-                    <> · cobertura {selected.poligono ? "em polígono irregular" : fmtAreaM2(raioOf(selected.status, selected.raio))}</>
-                  )}
-                  {selected.kind === "area" && (selected.denunciasCount ?? 0) > 0 && (
-                    <> · {num(selected.denunciasCount)} denúncia{(selected.denunciasCount ?? 0) === 1 ? "" : "s"}</>
-                  )}
-                </p>
-                {selected.kind === "area" && selected.status === "identificada" && (
-                  <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                    Esta área ainda não tem árvores. Sua denúncia ajuda a ONG a priorizar o local.
-                  </p>
-                )}
-                <button
-                  onClick={() =>
-                    navigate("/denunciar", {
-                      state: { address: selected.title },
-                    })
-                  }
-                  className="btn btn-primary mt-3 w-full text-sm font-semibold"
-                >
-                  {selected.kind === "area" ? "Denunciar esta área" : "Ver minha denúncia"}
-                </button>
-              </Card>
+            {userPos && (
+              <>
+                <Circle center={[userPos.lat, userPos.lng]} radius={1800} pathOptions={{ color: "#2563EB", weight: 1.5, opacity: 0.8, fillColor: "#2563EB", fillOpacity: 0.08 }} />
+                <Marker position={[userPos.lat, userPos.lng]} icon={userIcon()} />
+              </>
             )}
-          </>
+          </MapContainer>
+
+          {/* Controles */}
+          <div className="absolute right-3 top-3 z-[600] flex flex-col gap-2">
+            <button
+              onClick={locate}
+              disabled={locating}
+              className="flex size-11 items-center justify-center rounded-full border border-black/[0.07] bg-white/95 text-primary shadow-[0_2px_12px_rgba(20,36,27,0.18)] disabled:opacity-60"
+              aria-label="Minha localização"
+              title="Minha localização"
+            >
+              {locating ? <Crosshair size={18} className="animate-spin" /> : <Navigation size={18} />}
+            </button>
+            <button
+              onClick={() => setFitSignal((s) => s + 1)}
+              disabled={markers.length === 0}
+              className="flex size-11 items-center justify-center rounded-full border border-black/[0.07] bg-white/95 text-primary shadow-[0_2px_12px_rgba(20,36,27,0.18)] disabled:opacity-50"
+              aria-label="Ver todas as áreas"
+              title="Ver todas as áreas"
+            >
+              <Expand size={18} />
+            </button>
+          </div>
+
+          {userPos && (
+            <span className="absolute left-3 top-3 z-[600] flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold text-foreground shadow-[0_2px_10px_rgba(20,36,27,0.15)]">
+              <span className="size-2 rounded-full bg-blue-600" /> Você está aqui
+            </span>
+          )}
+
+          {/* Legenda */}
+          <div className="absolute bottom-3 left-3 z-[600] rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-[0_2px_10px_rgba(20,36,27,0.15)] backdrop-blur">
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Demarcação</p>
+            <div className="flex flex-col gap-1">
+              <span className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+                <span className="size-2.5 rounded-full" style={{ background: AREA_COLORS.identificada }} /> Déficit
+              </span>
+              <span className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+                <span className="size-2.5 rounded-full" style={{ background: AREA_COLORS["em tratamento"] }} /> Em tratamento
+              </span>
+              <span className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+                <span className="size-2.5 rounded-full" style={{ background: AREA_COLORS.reflorestada }} /> Reflorestada
+              </span>
+            </div>
+          </div>
+
+          <span className="absolute bottom-3 right-3 z-[600] rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">
+            {num(markers.length)} demarcada{markers.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        {locError && (
+          <p className="flex items-center gap-2 bg-error/10 px-4 py-2 text-xs font-medium text-error">
+            <AlertTriangle size={13} className="shrink-0" /> {locError}
+          </p>
         )}
-      </div>
+        {unmapped > 0 && !loading && (
+          <p className="flex items-center gap-2 bg-warning/10 px-4 py-2 text-xs font-medium text-warning">
+            <MapPin size={13} className="shrink-0" />
+            {num(unmapped)} registro{unmapped === 1 ? "" : "s"} sem coordenadas — {tab === "areas" ? "edite a área informando latitude/longitude." : "a área da denúncia ainda não foi geocodificada."}
+          </p>
+        )}
+
+        {/* ── Lista (mais próximas) ── */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-3">
+          {loading ? (
+            <Loading label="Carregando…" />
+          ) : error ? (
+            <DataError error={error} onRetry={() => { areas.reload(); denuncias.reload(); }} />
+          ) : sortedRows.length === 0 ? (
+            <EmptyState title="Nada por aqui" hint="Ajuste a busca ou os filtros." />
+          ) : (
+            <>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                {userPos ? "Mais próximas de você" : "Áreas e denúncias"}
+                {userPos && (
+                  <span className="ml-1.5 font-normal normal-case text-muted-foreground/70">
+                    · ordenado por distância
+                  </span>
+                )}
+              </p>
+              <div className="flex flex-col gap-2">
+                {sortedRows.map((r) => {
+                  const dist =
+                    userPos && r.lat !== null && r.lng !== null
+                      ? haversineM(userPos.lat, userPos.lng, r.lat, r.lng)
+                      : null;
+                  const active = selected?.key === r.key;
+                  const noGeo = r.lat === null || r.lng === null;
+                  return (
+                    <button
+                      key={r.key}
+                      onClick={() => setSelected(active ? null : r)}
+                      className={`flex items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors ${
+                        active
+                          ? "border-primary/40 bg-primary/[0.06]"
+                          : "border-black/[0.06] bg-white"
+                      }`}
+                    >
+                      <span
+                        className="size-3 shrink-0 rounded-full"
+                        style={{
+                          background:
+                            r.kind === "area"
+                              ? (AREA_COLORS[r.status] ?? AREA_COLORS.identificada)
+                              : "#C9731D",
+                          opacity: noGeo ? 0.35 : 1,
+                        }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-foreground">{r.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {r.sub}
+                          {r.kind === "area" && !noGeo && (
+                            <span className="font-medium"> · {r.poligono ? "polígono" : fmtAreaM2(raioOf(r.status, r.raio))}</span>
+                          )}
+                          {noGeo && <span className="font-medium"> · sem mapa</span>}
+                          {dist !== null && <span className="font-medium text-primary"> · {fmtDist(dist)}</span>}
+                        </p>
+                      </div>
+                      <StatusBadge
+                        status={r.status}
+                        map={r.kind === "area" ? AREA_STATUS : DEN_STATUS}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* ── Ação do selecionado ── */}
+              {selected && (
+                <Card className="mt-3 !border-primary/30 p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    {selected.kind === "area" ? "Área selecionada" : "Denúncia selecionada"}
+                  </p>
+                  <p className="mt-1.5 font-display text-lg font-semibold leading-snug text-foreground">
+                    {selected.title}
+                  </p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                    {selected.sub}
+                    {selected.kind === "area" && selected.lat !== null && (
+                      <> · cobertura {selected.poligono ? "em polígono irregular" : fmtAreaM2(raioOf(selected.status, selected.raio))}</>
+                    )}
+                    {selected.kind === "area" && (selected.denunciasCount ?? 0) > 0 && (
+                      <> · {num(selected.denunciasCount)} denúncia{(selected.denunciasCount ?? 0) === 1 ? "" : "s"}</>
+                    )}
+                  </p>
+                  {selected.kind === "area" && selected.status === "identificada" && (
+                    <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                      Esta área ainda não tem árvores. Sua denúncia ajuda a ONG a priorizar o local.
+                    </p>
+                  )}
+                  <button
+                    onClick={() =>
+                      navigate("/denunciar", {
+                        state: { address: selected.title },
+                      })
+                    }
+                    className="btn btn-primary mt-3 w-full text-sm font-semibold"
+                  >
+                    {selected.kind === "area" ? "Denunciar esta área" : "Ver minha denúncia"}
+                  </button>
+                </Card>
+              )}
+            </>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
