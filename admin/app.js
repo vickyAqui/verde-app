@@ -182,9 +182,9 @@ function navigate(view) {
 
 /* ---------- Dashboard ---------- */
 const STATUS_META = {
-  aberta: { label: 'Abertas', color: '#EF4444' },
-  tratamento: { label: 'Em tratamento', color: '#3B82F6' },
-  resolvida: { label: 'Resolvidas', color: '#16A34A' },
+  aberta: { label: 'Abertas', color: '#B3402A' },
+  tratamento: { label: 'Em tratamento', color: '#2563EB' },
+  resolvida: { label: 'Resolvidas', color: '#166B44' },
   outros: { label: 'Outras', color: '#94A3B8' },
 };
 
@@ -210,7 +210,7 @@ function renderDonut(denuncias) {
   segments.innerHTML = '';
 
   if (total === 0) {
-    segments.innerHTML = `<circle cx="60" cy="60" r="42" fill="none" stroke="#E8EFEA" stroke-width="14"></circle>`;
+    segments.innerHTML = `<circle cx="60" cy="60" r="42" fill="none" stroke="#EFE9DC" stroke-width="14"></circle>`;
   } else {
     Object.entries(counts).forEach(([key, value]) => {
       if (!value) return;
@@ -321,7 +321,7 @@ function renderComposicao(stats) {
             <strong>${row.value}</strong>
           </div>
           <div class="comp-bar">
-            <span class="comp-fill ${row.key}" style="width:${Math.max((row.value / max) * 100, 4)}%"></span>
+            <span class="comp-fill ${row.key}" style="width:${row.value ? Math.max((row.value / max) * 100, 4) : 0}%"></span>
           </div>
         </div>`,
     )
@@ -331,11 +331,12 @@ function renderComposicao(stats) {
 async function loadDashboard() {
   const dateEl = $('#dash-date');
   if (dateEl) {
-    dateEl.textContent = new Date().toLocaleDateString('pt-BR', {
+    const label = new Date().toLocaleDateString('pt-BR', {
       weekday: 'long',
       day: '2-digit',
       month: 'long',
     });
+    dateEl.textContent = label.charAt(0).toUpperCase() + label.slice(1);
   }
 
   try {
@@ -457,7 +458,7 @@ async function loadUsuarios() {
       .map((u) => `
         <tr>
           <td>${u.idUsuario}</td>
-          <td><div class="user-cell"><span class="avatar">${escapeHtml(initials(u.nome))}</span>${escapeHtml(u.nome)}</div></td>
+          <td><div class="user-cell"><span class="avatar">${escapeHtml(initials(u.nome))}</span><span class="cell-name">${escapeHtml(u.nome)}</span></div></td>
           <td>${escapeHtml(u.email)}</td>
           <td>${badgePerfil(u.nivel?.descricao)}</td>
         </tr>
@@ -602,7 +603,7 @@ async function loadDenuncias() {
           <td>${d.area ? areaLabel(d.area) : '-'}</td>
           <td>${d.usuario ? escapeHtml(d.usuario.nome) : '-'}</td>
           <td>${formatDate(d.dataDenuncia)}</td>
-          <td class="cell-desc">${escapeHtml(d.descricao)}</td>
+          <td><span class="cell-desc">${escapeHtml(d.descricao)}</span></td>
         </tr>
       `)
       .join('');
