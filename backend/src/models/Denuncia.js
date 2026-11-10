@@ -28,7 +28,7 @@ const Denuncia = sequelize.define('Denuncia', {
     allowNull: false,
     defaultValue: 'aberta',
     validate: {
-      isIn: [['aberta', 'em tratamento', 'resolvido']],
+      isIn: [['aberta', 'em tratamento', 'resolvida']],
     },
   },
   descricao: {
