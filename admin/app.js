@@ -182,8 +182,8 @@ function navigate(view) {
 
 /* ---------- Dashboard ---------- */
 const STATUS_META = {
-  aberta: { label: 'Abertas', color: '#DC2626' },
-  tratamento: { label: 'Em tratamento', color: '#2563EB' },
+  aberta: { label: 'Abertas', color: '#EF4444' },
+  tratamento: { label: 'Em tratamento', color: '#3B82F6' },
   resolvida: { label: 'Resolvidas', color: '#16A34A' },
   outros: { label: 'Outras', color: '#94A3B8' },
 };
