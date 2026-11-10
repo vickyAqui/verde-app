@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV !== 'test') {
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 200,
+    max: 2000,
     message: { error: 'Muitas requisições. Tente novamente mais tarde.' },
   });
   app.use('/api/', limiter);
