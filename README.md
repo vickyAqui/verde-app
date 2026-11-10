@@ -516,8 +516,7 @@ O token é retornado no login/register.
 | HomeScreen | Dashboard com resumo |
 | AreasScreen | Lista de áreas não verdes |
 | NGOsScreen | Lista de ONGs e projetos |
-| NGOsCreateScreen | Cadastro de ONG |
-| ONGDashboardScreen | Painel da ONG (projetos, seguidores e denúncias) |
+| NGOsCreateScreen | Cadastro de ONG (depois abre o site do painel da ONG) |
 | ProjetosScreen | Projetos do usuário (com % conclusão) |
 | DenunciasScreen | Lista de denúncias |
 | ProfileScreen | Perfil + logout |

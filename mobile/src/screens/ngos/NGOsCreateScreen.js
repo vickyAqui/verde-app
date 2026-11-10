@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   Text,
@@ -11,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import api from '../../api';
+import { ONG_PANEL_URL } from '../../config/panels';
 import { BackLink, Button, Field, Input } from '../../components/ui';
 import { COLORS, FONTS } from '../../theme';
 import { styles } from './NGOsCreateStyle';
@@ -80,7 +82,7 @@ export default function NGOsCreateScreen({ navigation }) {
         telefone: telefoneValue,
         descricao: descricao.trim(),
       });
-      navigation.replace('ONGDashboard');
+      Linking.openURL(ONG_PANEL_URL);
     } catch (e) {
       setError(
         e?.response?.data?.error ||

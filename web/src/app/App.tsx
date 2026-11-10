@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   BrowserRouter,
   Navigate,
@@ -15,12 +15,11 @@ import { MapScreen } from "./components/MapScreen";
 import { ReportsScreen } from "./components/ReportsScreen";
 import { OngsScreen } from "./components/OngsScreen";
 import { OngsCreateScreen } from "./components/OngsCreateScreen"
-import { OngDashboardScreen } from "./components/OngDashboardScreen";
 import { EducationScreen } from "./components/EducationScreen";
 import { ProfileScreen } from "./components/ProfileScreen";
-import { AdminScreen } from "./components/AdminScreen";
 import { LoginScreen } from "./components/LoginScreen";
 import { RegisterScreen } from "./components/RegisterScreen";
+import { ADMIN_PANEL_URL, ONG_PANEL_URL } from "../lib/panels";
 
 function Splash() {
   return (
@@ -48,12 +47,22 @@ function PublicOnly({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-function AdminGate() {
-  const { user, loading, tipo } = useAuth();
-  if (loading) return <Splash />;
-  if (!user) return <Navigate to="/login" replace />;
-  if (tipo !== "admin") return <Navigate to="/" replace />;
-  return <AdminScreen />;
+function ExternalRedirect({ to }: { to: string }) {
+  useEffect(() => {
+    window.location.replace(to);
+  }, [to]);
+
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-8 text-center">
+      <Leaf size={26} className="text-primary" />
+      <p className="text-sm font-semibold text-foreground">
+        Abrindo o painel em um site separado...
+      </p>
+      <a href={to} className="text-xs font-semibold text-primary underline">
+        Abrir manualmente
+      </a>
+    </div>
+  );
 }
 
 function AppShell() {
@@ -175,9 +184,11 @@ export default function App() {
             }
           />
 
-          <Route element={<RequireAuth />}>
-            <Route path="/admin" element={<AdminGate />} />
+          {/* Os painéis ficam em sites separados do app (requisito do projeto). */}
+          <Route path="/admin" element={<ExternalRedirect to={ADMIN_PANEL_URL} />} />
+          <Route path="/painel-ong" element={<ExternalRedirect to={ONG_PANEL_URL} />} />
 
+          <Route element={<RequireAuth />}>
             <Route element={<AppShell />}>
               <Route path="/" element={<HomeScreen />} />
               <Route path="/mapa" element={<MapScreen />} />
@@ -186,7 +197,6 @@ export default function App() {
               <Route path="/educacao" element={<EducationScreen />} />
               <Route path="/perfil" element={<ProfileScreen />} />
               <Route path="/ongs/create" element={<OngsCreateScreen />} />
-              <Route path="/painel-ong" element={<OngDashboardScreen />} />
             </Route>
           </Route>
 

@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 import { api } from "../../lib/api";
+import { ONG_PANEL_URL } from "../../lib/panels";
 
 function formatCnpj(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 14);
@@ -78,7 +79,7 @@ export function OngsCreateScreen() {
         descricao: descricao.trim(),
       });
 
-      navigate("/painel-ong", { replace: true });
+      window.location.assign(ONG_PANEL_URL);
     } catch (err) {
       setError(
         err instanceof Error

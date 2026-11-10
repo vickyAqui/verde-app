@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import {
   AlertTriangle,
   BookOpen,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { ApiError, api, type Area, type Denuncia, type Ong, type Projeto } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { ADMIN_PANEL_URL, ONG_PANEL_URL } from "../../lib/panels";
 import { useFetch } from "../../lib/use-fetch";
 import { Card, DataError, EmptyState, initials, Loading, num, StatusBadge } from "./ui";
 
@@ -66,12 +67,12 @@ export function ProfileScreen() {
             {initials(user?.nome ?? "?")}
           </div>
           {isAdmin && (
-            <Link
-              to="/admin"
+            <a
+              href={ADMIN_PANEL_URL}
               className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/12 px-3.5 py-2 text-xs font-semibold text-white backdrop-blur"
             >
               <Shield size={13} strokeWidth={2} /> Painel Admin
-            </Link>
+            </a>
           )}
         </div>
       </div>
@@ -131,7 +132,7 @@ export function ProfileScreen() {
       {myOng.data ? (
         <div className="px-5 pt-5">
           <button
-            onClick={() => navigate("/painel-ong")}
+            onClick={() => window.location.assign(ONG_PANEL_URL)}
             className="flex w-full items-center gap-3 rounded-2xl border border-primary/20 bg-primary/[0.08] px-4 py-3.5 text-left transition-colors hover:bg-primary/[0.14]"
           >
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-content">

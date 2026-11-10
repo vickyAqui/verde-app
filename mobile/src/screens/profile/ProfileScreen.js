@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
+  Linking,
   Platform,
   RefreshControl,
   ScrollView,
@@ -15,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFetch } from '../../hooks/useFetch';
+import { ADMIN_PANEL_URL, ONG_PANEL_URL } from '../../config/panels';
 import {
   Card,
   Loading,
@@ -151,7 +153,7 @@ export default function ProfileScreen({ navigation }) {
           {isAdmin && (
             <TouchableOpacity
               style={styles.adminLink}
-              onPress={() => navigation.navigate('Admin')}
+              onPress={() => Linking.openURL(ADMIN_PANEL_URL)}
               activeOpacity={0.8}
             >
               <Ionicons name="shield" size={13} color={COLORS.white} />
@@ -235,7 +237,7 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.ongCta}
-            onPress={() => navigation.navigate('ONGDashboard')}
+            onPress={() => Linking.openURL(ONG_PANEL_URL)}
             activeOpacity={0.85}
           >
             <View style={styles.ongIcon}>
