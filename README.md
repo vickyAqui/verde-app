@@ -6,6 +6,8 @@ App de mapeamento de áreas não verdes e conexão entre pessoas e ONGs de reflo
 
 - **Aplicativo (online):** https://verde-app-main.onrender.com/
 - **Tela de cadastro:** https://verde-app-main.onrender.com/cadastro
+- **Painel Web do Admin** https://verde-app-admin.onrender.com/
+- **Painel Web da ONG** https://verde-app-ong.onrender.com/
 - **Repositório (GitHub):** https://github.com/vickyAqui/verde-app
 - **API (backend):** https://verde-app-backend.onrender.com/api
 
