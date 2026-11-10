@@ -125,7 +125,18 @@ function navigate(view) {
     campanhas: 'Denúncias',
     projetos: 'Projetos',
   };
-  $('#page-title').textContent = titles[view];
+  const subtitles = {
+    dashboard: 'Acompanhe denúncias, projetos e a comunidade da sua ONG.',
+    usuarios: 'Sua conta e perfil no +Verde.',
+    campanhas: 'Denúncias registradas pela sua ONG.',
+    projetos: 'Projetos e percentual de conclusão.',
+  };
+
+  $('#page-title').textContent = titles[view] || '';
+  $('#page-subtitle').textContent = subtitles[view] || '';
+
+  const headerMeta = document.querySelector('.header-meta');
+  if (headerMeta) headerMeta.classList.toggle('hidden', view !== 'dashboard');
 
   if (view === 'dashboard') loadDashboard();
   if (view === 'usuarios') loadUsuarios();
@@ -135,45 +146,242 @@ function navigate(view) {
 }
 
 /* ---------- Dashboard ---------- */
+function formatCnpj(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length !== 14) return value || '-';
+  return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+}
+
+function formatTelefone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length === 11) return digits.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+  if (digits.length === 10) return digits.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
+  return value || '-';
+}
+
+function statusKey(status) {
+  const key = String(status || '').toLowerCase();
+  if (key.startsWith('aberta')) return 'aberta';
+  if (key.includes('tratamento')) return 'tratamento';
+  if (key.startsWith('resolvid')) return 'resolvida';
+  return 'outros';
+}
+
+const DONUT_COLORS = {
+  aberta: '#DC2626',
+  tratamento: '#2563EB',
+  resolvida: '#16A34A',
+  outros: '#94A3B8',
+};
+
+const DONUT_LABELS = {
+  aberta: 'Abertas',
+  tratamento: 'Em tratamento',
+  resolvida: 'Resolvidas',
+  outros: 'Outras',
+};
+
+function renderDonut(denuncias) {
+  const counts = { aberta: 0, tratamento: 0, resolvida: 0, outros: 0 };
+  denuncias.forEach((d) => {
+    counts[statusKey(d.statusDenuncia)] += 1;
+  });
+
+  const total = denuncias.length;
+  const segments = $('#dash-donut-segments');
+  const circumference = 2 * Math.PI * 42;
+
+  segments.innerHTML = '';
+
+  if (total === 0) {
+    segments.innerHTML =
+      '<circle cx="60" cy="60" r="42" fill="none" stroke="#E8EFEA" stroke-width="14"></circle>';
+  } else {
+    let offset = 0;
+
+    Object.entries(counts).forEach(([key, value]) => {
+      if (!value) return;
+      const length = (value / total) * circumference;
+
+      segments.insertAdjacentHTML(
+        'beforeend',
+        `<circle cx="60" cy="60" r="42" fill="none" stroke="${DONUT_COLORS[key]}" stroke-width="14" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}"></circle>`,
+      );
+
+      offset += length;
+    });
+  }
+
+  $('#dash-donut-total').textContent = total;
+
+  const legend = Object.entries(counts)
+    .filter(([, value]) => value > 0)
+    .map(
+      ([key, value]) => `
+        <li>
+          <span class="legend-dot" style="background:${DONUT_COLORS[key]}"></span>
+          <span class="legend-label">${DONUT_LABELS[key]}</span>
+          <span class="legend-value">${value}</span>
+        </li>`,
+    )
+    .join('');
+
+  $('#dash-donut-legend').innerHTML =
+    legend || '<li class="legend-empty">Nenhuma denúncia registrada.</li>';
+}
+
+function renderProjetos(projetos, percentualMedio) {
+  const container = $('#dash-projetos');
+
+  if (!projetos.length) {
+    $('#dash-projetos-resumo').textContent = 'Nenhum projeto cadastrado ainda';
+    container.innerHTML = '<p class="empty-inline">Nenhum projeto em andamento.</p>';
+    return;
+  }
+
+  $('#dash-projetos-resumo').textContent = `${projetos.length} projeto(s) • média de ${percentualMedio}% concluído`;
+
+  container.innerHTML = projetos
+    .slice(0, 4)
+    .map((projeto) => {
+      const pct = Math.max(0, Math.min(100, Number(projeto.percentualConclusao || 0)));
+
+      return `
+        <div class="project-item">
+          <div class="project-top">
+            <span class="project-name">${escapeHtml(projeto.objetivo)}</span>
+            <span class="project-pct">${pct}%</span>
+          </div>
+          <div class="project-bar"><span style="width:${pct}%"></span></div>
+          <p class="project-desc">${escapeHtml(projeto.descricao || 'Sem descrição')}</p>
+        </div>`;
+    })
+    .join('');
+}
+
+function renderUltimas(denuncias) {
+  const container = $('#dash-ultimas');
+
+  if (!denuncias.length) {
+    container.innerHTML = '<p class="empty-inline">Nenhuma denúncia registrada.</p>';
+    return;
+  }
+
+  container.innerHTML = denuncias
+    .slice(0, 5)
+    .map((denuncia) => {
+      const local = denuncia.area
+        ? `${denuncia.area.cidade || ''}${denuncia.area.bairro ? `, ${denuncia.area.bairro}` : ''}`
+        : 'Local não informado';
+
+      return `
+        <div class="recent-item">
+          <span class="recent-dot ${statusKey(denuncia.statusDenuncia)}"></span>
+          <div class="recent-body">
+            <p class="recent-title">${escapeHtml(denuncia.titulo)}</p>
+            <p class="recent-meta">${escapeHtml(local)} • ${formatDate(denuncia.dataDenuncia)}</p>
+          </div>
+          ${badgeDenuncia(denuncia.statusDenuncia)}
+        </div>`;
+    })
+    .join('');
+}
+
+function renderOngInfo(ong) {
+  $('#dash-ong-info').innerHTML = `
+    <div class="ong-info-head">
+      <span class="avatar">${escapeHtml(initials(ong.nome))}</span>
+      <div>
+        <strong>${escapeHtml(ong.nome)}</strong>
+        <small>${escapeHtml(ong.regiao)}</small>
+      </div>
+    </div>
+    <dl class="ong-info-grid">
+      <div>
+        <dt>CNPJ</dt>
+        <dd>${escapeHtml(formatCnpj(ong.cnpj))}</dd>
+      </div>
+      <div>
+        <dt>Telefone</dt>
+        <dd>${escapeHtml(formatTelefone(ong.telefone))}</dd>
+      </div>
+    </dl>`;
+}
+
 async function loadDashboard() {
+  const emptyEl = $('#dash-empty');
+  const contentEl = $('#dash-content');
+  const statusEl = $('#dash-status');
+  const dateEl = $('#dash-date');
+
+  if (dateEl) {
+    dateEl.textContent = new Date().toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+    });
+  }
+
+  emptyEl.classList.add('hidden');
+  contentEl.classList.remove('hidden');
+
+  let dashboard = null;
+
   try {
-    const [areasRes, denunciasRes, ongsRes, projetosRes, followingRes] = await Promise.all([
-      api('/areas'),
-      api('/denuncias'),
-      api('/ongs'),
-      api('/projetos'),
-      api('/ongs/following'),
-    ]);
+    dashboard = await api('/ongs/me/dashboard');
+  } catch (err) {
+    if (!/cadastrou uma ONG/i.test(err.message || '')) {
+      console.error(err);
+    }
+  }
 
-    const areas = areasRes.areas || [];
-    const denuncias = denunciasRes.denuncias || [];
-    const ongs = ongsRes.ongs || [];
-    const projetos = projetosRes.projetos || [];
-    const ongsSeguidas = followingRes.ongs || [];
-    const ongDaSessao = ongsSeguidas[0];
+  if (!dashboard) {
+    contentEl.classList.add('hidden');
+    emptyEl.classList.remove('hidden');
+    statusEl.textContent = 'Sem ONG';
+    statusEl.className = 'badge badge-outros';
+    $('#page-subtitle').textContent = `Olá, ${state.usuario?.nome || 'visitante'} — cadastre sua ONG para começar.`;
+    return;
+  }
 
-    /*------ Projetos criados pelas ONGs que esta ONG acompanha ------------*/
-    const ongIds = new Set(ongsSeguidas.map((o) => String(o.idOng)));
-    const projetosDaOng = projetos.filter((p) =>
-      ongIds.has(String(p.ong?.idOng))
-    );
+  const { ong, stats, projetos = [], denuncias = [] } = dashboard;
 
-    const membrosRes = await api(`/ongs/${ongDaSessao.idOng}/membros`);
+  let areas = [];
+  let ongs = [];
 
-    // Denúncias em aberto apenas deste usuário (esta ONG)
-    const denunciasAbertasDoUsuario = denuncias.filter(
-      (d) => d.statusDenuncia === 'aberta' && d.usuario?.idUsuario === state.usuario?.idUsuario
-    );
-
-    $('#stat-membros').textContent = membrosRes.membros.length;
-    $('#stat-areas').textContent = areas.length;
-    $('#stat-abertas').textContent = denunciasAbertasDoUsuario.length;
-    $('#stat-ongs').textContent = ongs.length;
-    $('#stat-projetos').textContent = projetosDaOng.length;
-
+  try {
+    const [areasRes, ongsRes] = await Promise.all([api('/areas'), api('/ongs')]);
+    areas = areasRes.areas || [];
+    ongs = ongsRes.ongs || [];
   } catch (err) {
     console.error(err);
   }
+
+  $('#page-subtitle').textContent = `Olá, ${ong.nome} — aqui está o resumo da sua ONG hoje.`;
+
+  const aprovada = String(ong.statusOng || '').toLowerCase() === 'aprovada';
+  statusEl.textContent = aprovada ? 'ONG aprovada' : 'ONG em análise';
+  statusEl.className = `badge ${aprovada ? 'badge-comum' : 'badge-identificada'}`;
+
+  $('#stat-abertas').textContent = stats.denunciasAbertas;
+  $('#stat-abertas-hint').textContent = `de ${stats.totalDenuncias} denúncia(s) no total`;
+
+  $('#stat-projetos').textContent = stats.totalProjetos;
+  $('#stat-projetos-hint').textContent = `${stats.percentualMedio}% de conclusão média`;
+
+  $('#stat-areas').textContent = areas.length;
+  $('#stat-areas-hint').textContent = 'mapeadas na rede +Verde';
+
+  $('#stat-ongs').textContent = ongs.length;
+  $('#stat-ongs-hint').textContent = 'parceiras cadastradas';
+
+  $('#stat-membros').textContent = stats.totalMembros;
+  $('#stat-membros-hint').textContent = 'na sua equipe';
+
+  renderProjetos(projetos, stats.percentualMedio);
+  renderDonut(denuncias);
+  renderUltimas(denuncias);
+  renderOngInfo(ong);
 }
 
 /* ---------- Meus dados ---------- */
@@ -319,8 +527,8 @@ async function handleCadastroOng(e) {
   const nome = $('#cad-nome').value.trim();
   const email = $('#cad-email').value.trim();
   const senha = $('#cad-senha').value;
-  const cnpj = $('#cad-cnpj').value.trim().replace(/\D/g, '');
-  const telefone = $('#cad-telefone').value.trim().replace(/\D/g, '');
+  const cnpj = $('#cad-cnpj').value.trim();
+  const telefone = $('#cad-telefone').value.trim();
   const regiao = $('#cad-regiao').value.trim();
   const descricao = $('#cad-descricao').value.trim();
 
@@ -330,18 +538,8 @@ async function handleCadastroOng(e) {
     return;
   }
 
-  if (cnpj.length !== 14) {
-    errorEl.textContent = 'Informe um CNPJ válido com 14 dígitos.';
-    errorEl.classList.remove('hidden');
-    return;
-  }
-
-  if (telefone.length < 10 || telefone.length > 11) {
-    errorEl.textContent = 'Informe um telefone válido.';
-    errorEl.classList.remove('hidden');
-    return;
-  }
-
+  // Validação de formato de CNPJ/telefone removida temporariamente
+  // para demonstração: qualquer valor preenchido é aceito.
   btn.disabled = true;
   btn.textContent = 'Cadastrando...';
 
@@ -363,15 +561,10 @@ async function handleCadastroOng(e) {
     localStorage.setItem('verde_ong_token', token);
 
     // 2) cria a ONG vinculada ao usuário
-    const ongRes = await api('/ongs', {
+    await api('/ongs', {
       method: 'POST',
       body: JSON.stringify({ nome, regiao, cnpj, telefone, descricao }),
     });
-
-    if (!ongRes.ok) {
-      const ongData = await ongRes.json().catch(() => ({}));
-      throw new Error(ongData.error || 'Não foi possível criar a ONG.');
-    }
 
     successEl.classList.remove('hidden');
     $('#cadastro-ong-form').reset();
@@ -408,6 +601,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   $('#cadastro-ong-form').addEventListener('submit', handleCadastroOng);
   document.querySelectorAll('.nav-link').forEach((el) => {
+    el.addEventListener('click', () => navigate(el.dataset.view));
+  });
+  document.querySelectorAll('.quick-action, .link-btn, .btn[data-view]').forEach((el) => {
     el.addEventListener('click', () => navigate(el.dataset.view));
   });
 

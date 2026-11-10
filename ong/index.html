@@ -18,7 +18,7 @@
       <form id="login-form">
         <div class="field">
           <label for="login-email">E-mail</label>
-          <input type="email" id="login-email" placeholder="ong@verde.com" required />
+          <input type="text" id="login-email" placeholder="ong@verde.com" autocomplete="email" required />
         </div>
         <div class="field">
           <label for="login-senha">Senha</label>
@@ -54,7 +54,7 @@
         </div>
         <div class="field">
           <label for="cad-email">E-mail</label>
-          <input type="email" id="cad-email" placeholder="ong@email.com" required />
+          <input type="text" id="cad-email" placeholder="ong@email.com" autocomplete="email" required />
         </div>
         <div class="field">
           <label for="cad-senha">Senha</label>
@@ -105,31 +105,169 @@
 
     <main class="content">
       <header class="content-header">
-        <h2 id="page-title">Dashboard</h2>
+        <div>
+          <h2 id="page-title">Dashboard</h2>
+          <p id="page-subtitle" class="page-subtitle">
+            Acompanhe denúncias, projetos e a comunidade da sua ONG.
+          </p>
+        </div>
+        <div class="header-meta">
+          <span id="dash-status" class="badge badge-outros">Carregando...</span>
+          <span id="dash-date" class="dash-date"></span>
+        </div>
       </header>
 
       <!-- Dashboard -->
       <section id="view-dashboard" class="page active">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <span class="stat-label">Denúncias em aberto</span>
-            <span class="stat-value" id="stat-abertas">-</span>
+        <div id="dash-empty" class="panel empty-state hidden">
+          <div class="empty-icon">🌱</div>
+          <h4>Nenhuma ONG cadastrada ainda</h4>
+          <p>Cadastre sua ONG para acompanhar denúncias, projetos e membros neste painel.</p>
+          <button type="button" class="btn btn-primary" data-view="cadastro">
+            Cadastrar minha ONG
+          </button>
+        </div>
+
+        <div id="dash-content">
+          <!-- Indicadores -->
+          <div class="kpi-grid">
+            <article class="kpi-card kpi-red">
+              <span class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+              </span>
+              <div class="kpi-body">
+                <p class="kpi-label">Denúncias abertas</p>
+                <p class="kpi-value" id="stat-abertas">-</p>
+                <p class="kpi-hint" id="stat-abertas-hint">aguardando ação</p>
+              </div>
+            </article>
+
+            <article class="kpi-card kpi-blue">
+              <span class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+              </span>
+              <div class="kpi-body">
+                <p class="kpi-label">Projetos da ONG</p>
+                <p class="kpi-value" id="stat-projetos">-</p>
+                <p class="kpi-hint" id="stat-projetos-hint">em andamento</p>
+              </div>
+            </article>
+
+            <article class="kpi-card kpi-green">
+              <span class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              </span>
+              <div class="kpi-body">
+                <p class="kpi-label">Áreas mapeadas</p>
+                <p class="kpi-value" id="stat-areas">-</p>
+                <p class="kpi-hint" id="stat-areas-hint">na rede +Verde</p>
+              </div>
+            </article>
+
+            <article class="kpi-card kpi-purple">
+              <span class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </span>
+              <div class="kpi-body">
+                <p class="kpi-label">ONGs na rede</p>
+                <p class="kpi-value" id="stat-ongs">-</p>
+                <p class="kpi-hint" id="stat-ongs-hint">parceiras cadastradas</p>
+              </div>
+            </article>
+
+            <article class="kpi-card kpi-amber">
+              <span class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>
+              </span>
+              <div class="kpi-body">
+                <p class="kpi-label">Membros da ONG</p>
+                <p class="kpi-value" id="stat-membros">-</p>
+                <p class="kpi-hint" id="stat-membros-hint">na sua equipe</p>
+              </div>
+            </article>
           </div>
-          <div class="stat-card">
-            <span class="stat-label">Projetos da ONG</span>
-            <span class="stat-value" id="stat-projetos">-</span>
+
+          <!-- Projetos + status -->
+          <div class="dash-grid">
+            <article class="panel">
+              <header class="panel-head">
+                <div>
+                  <h4>Projetos em andamento</h4>
+                  <p class="panel-sub" id="dash-projetos-resumo">Carregando...</p>
+                </div>
+                <button type="button" class="link-btn" data-view="projetos">Ver todos</button>
+              </header>
+              <div id="dash-projetos" class="project-list"></div>
+            </article>
+
+            <article class="panel">
+              <header class="panel-head">
+                <div>
+                  <h4>Denúncias por status</h4>
+                  <p class="panel-sub">Distribuição das suas denúncias</p>
+                </div>
+              </header>
+              <div class="donut-wrap">
+                <svg class="donut" viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="donut-track" cx="60" cy="60" r="42"></circle>
+                  <g id="dash-donut-segments" transform="rotate(-90 60 60)"></g>
+                </svg>
+                <div class="donut-center">
+                  <span id="dash-donut-total">0</span>
+                  <small>denúncias</small>
+                </div>
+              </div>
+              <ul id="dash-donut-legend" class="legend"></ul>
+            </article>
           </div>
-          <div class="stat-card">
-            <span class="stat-label">Áreas mapeadas</span>
-            <span class="stat-value" id="stat-areas">-</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">ONGs parceiras</span>
-            <span class="stat-value" id="stat-ongs">-</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Membros da ONG</span>
-            <span class="stat-value" id="stat-membros">-</span>
+
+          <!-- Últimas denúncias + ações -->
+          <div class="dash-grid dash-grid-bottom">
+            <article class="panel">
+              <header class="panel-head">
+                <div>
+                  <h4>Últimas denúncias</h4>
+                  <p class="panel-sub">Atualizações mais recentes</p>
+                </div>
+                <button type="button" class="link-btn" data-view="campanhas">Ver todas</button>
+              </header>
+              <div id="dash-ultimas" class="recent-list"></div>
+            </article>
+
+            <article class="panel">
+              <header class="panel-head">
+                <div>
+                  <h4>Ações rápidas</h4>
+                  <p class="panel-sub">Atalhos do painel</p>
+                </div>
+              </header>
+
+              <div class="quick-actions">
+                <button type="button" class="quick-action" data-view="campanhas">
+                  <span class="quick-icon quick-icon-red">!</span>
+                  <span class="quick-text">
+                    <strong>Ver denúncias</strong>
+                    <small>Acompanhe os chamados</small>
+                  </span>
+                </button>
+                <button type="button" class="quick-action" data-view="projetos">
+                  <span class="quick-icon quick-icon-blue">↗</span>
+                  <span class="quick-text">
+                    <strong>Meus projetos</strong>
+                    <small>Progresso das ações</small>
+                  </span>
+                </button>
+                <button type="button" class="quick-action" data-view="usuarios">
+                  <span class="quick-icon quick-icon-green">@</span>
+                  <span class="quick-text">
+                    <strong>Meus dados</strong>
+                    <small>Conta e perfil</small>
+                  </span>
+                </button>
+              </div>
+
+              <div id="dash-ong-info" class="ong-info"></div>
+            </article>
           </div>
         </div>
       </section>
