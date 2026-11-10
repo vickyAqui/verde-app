@@ -322,6 +322,11 @@ tbody tr:hover {
   color: #334155;
 }
 
+.badge-ong {
+  background: #bdf2ff;
+  color: #06435f;
+}
+
 .badge-identificada {
   background: #FEF3C7;
   color: #92400E;

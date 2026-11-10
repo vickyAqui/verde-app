@@ -99,6 +99,33 @@ body {
   border-color: var(--primary);
 }
 
+.field textarea {
+  display: block;
+  width: 100%;
+  min-height: 128px;
+  padding: 12px 14px;
+  border: 1px solid #D5E2DA;
+  border-radius: 10px;
+  background: #F8FBF9;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.field textarea::placeholder {
+  color: #8A9A90;
+}
+
+.field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
+}
+
 .form-error {
   color: var(--danger);
   font-size: 13px;
@@ -322,6 +349,11 @@ tbody tr:hover {
   color: #334155;
 }
 
+.badge-ong {
+  background: #bdf2ff;
+  color: #06435f;
+}
+
 .badge-identificada {
   background: #FEF3C7;
   color: #92400E;
@@ -340,6 +372,14 @@ tbody tr:hover {
 .badge-outros {
   background: #E2E8F0;
   color: #334155;
+}
+
+#voltar-login-btn {
+  margin-bottom: 16px;
+}
+
+#cadastro-ong-btn{
+  margin-top: 16px;
 }
 
 .avatar {

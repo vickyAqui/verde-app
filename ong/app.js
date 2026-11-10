@@ -184,6 +184,8 @@ function badgePerfil(valor) {
 
   if (perfil === 'comum') { return '<span class="badge badge-comum">Comum</span>'; }
 
+  if (perfil === 'ong') { return '<span class="badge badge-ong">ONG</span>'; }
+
   return `<span class="badge">${escapeHtml(valor || 'Desconhecido')}</span>`;
 }
 
