@@ -1,3 +1,8 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+/* Remove a marca d'água de atribuição do mapa (demonstração). */
+.leaflet-control-attribution {
+  display: none !important;
+}

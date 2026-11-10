@@ -350,12 +350,10 @@ export function MapScreen() {
           zoom={13}
           minZoom={11}
           zoomControl={false}
+          attributionControl={false}
           className="h-full w-full"
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <MapController user={userPos} />
           <FitAll points={fitPoints} signal={fitSignal} />
           <FocusSelected row={selected} />
