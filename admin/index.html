@@ -38,132 +38,323 @@
     <aside class="sidebar">
       <div class="sidebar-brand">
         <span class="brand-icon">+</span>
-        <span>+Verde</span>
+        <div class="brand-text">
+          <strong>+Verde</strong>
+          <small>Painel administrativo</small>
+        </div>
       </div>
+
       <nav class="sidebar-nav">
-        <button class="nav-link active" data-view="dashboard">Dashboard</button>
-        <button class="nav-link" data-view="usuarios">Usuários</button>
-        <button class="nav-link" data-view="areas">Áreas</button>
-        <button class="nav-link" data-view="ongs">ONGs</button>
-        <button class="nav-link" data-view="denuncias">Denúncias</button>
+        <button class="nav-link active" data-view="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-link" data-view="usuarios">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Usuários</span>
+        </button>
+        <button class="nav-link" data-view="areas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>Áreas</span>
+        </button>
+        <button class="nav-link" data-view="ongs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+          <span>ONGs</span>
+        </button>
+        <button class="nav-link" data-view="denuncias">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          <span>Denúncias</span>
+        </button>
       </nav>
-      <button id="logout-btn" class="btn btn-outline btn-block">Sair</button>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <span class="avatar" id="sidebar-avatar">AD</span>
+          <div class="sidebar-user-text">
+            <strong id="sidebar-user-name">Administrador</strong>
+            <small>Administrador</small>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn btn-outline btn-block">Sair</button>
+      </div>
     </aside>
 
     <main class="content">
       <header class="content-header">
-        <h2 id="page-title">Dashboard</h2>
+        <div>
+          <p class="eyebrow" id="page-eyebrow">Visão geral</p>
+          <h2 id="page-title">Dashboard</h2>
+          <p id="page-subtitle" class="page-subtitle">
+            Acompanhe a rede +Verde em um só lugar.
+          </p>
+        </div>
+        <div class="header-meta">
+          <span id="dash-status" class="badge badge-aberta">Carregando...</span>
+          <span id="dash-date" class="dash-date"></span>
+        </div>
       </header>
 
       <!-- Dashboard -->
       <section id="view-dashboard" class="page active">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <span class="stat-label">Usuários</span>
-            <span class="stat-value" id="stat-usuarios">-</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Admins</span>
-            <span class="stat-value" id="stat-admins">-</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Usuários comuns</span>
-            <span class="stat-value" id="stat-comuns">-</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Áreas</span>
-            <span class="stat-value" id="stat-areas">-</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">ONGs</span>
-            <span class="stat-value" id="stat-ongs">-</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Projetos</span>
-            <span class="stat-value" id="stat-projetos">-</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">Denúncias</span>
-            <span class="stat-value" id="stat-denuncias">-</span>
-          </div>
-          <div class="stat-card stat-card-warn">
-            <span class="stat-label">Denúncias abertas</span>
-            <span class="stat-value" id="stat-denuncias-abertas">-</span>
-          </div>
+        <div class="kpi-grid">
+          <article class="kpi-card kpi-green">
+            <span class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <div class="kpi-body">
+              <p class="kpi-label">Usuários</p>
+              <p class="kpi-value" id="stat-usuarios">-</p>
+              <p class="kpi-hint" id="stat-usuarios-hint">na plataforma</p>
+            </div>
+          </article>
+
+          <article class="kpi-card kpi-blue">
+            <span class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+            </span>
+            <div class="kpi-body">
+              <p class="kpi-label">ONGs</p>
+              <p class="kpi-value" id="stat-ongs">-</p>
+              <p class="kpi-hint" id="stat-ongs-hint">parceiras cadastradas</p>
+            </div>
+          </article>
+
+          <article class="kpi-card kpi-purple">
+            <span class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+            </span>
+            <div class="kpi-body">
+              <p class="kpi-label">Projetos</p>
+              <p class="kpi-value" id="stat-projetos">-</p>
+              <p class="kpi-hint" id="stat-projetos-hint">em andamento</p>
+            </div>
+          </article>
+
+          <article class="kpi-card kpi-teal">
+            <span class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+            <div class="kpi-body">
+              <p class="kpi-label">Áreas mapeadas</p>
+              <p class="kpi-value" id="stat-areas">-</p>
+              <p class="kpi-hint" id="stat-areas-hint">na rede +Verde</p>
+            </div>
+          </article>
+
+          <article class="kpi-card kpi-amber">
+            <span class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            </span>
+            <div class="kpi-body">
+              <p class="kpi-label">Denúncias</p>
+              <p class="kpi-value" id="stat-denuncias">-</p>
+              <p class="kpi-hint" id="stat-denuncias-hint">registradas no total</p>
+            </div>
+          </article>
+
+          <article class="kpi-card kpi-red">
+            <span class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            </span>
+            <div class="kpi-body">
+              <p class="kpi-label">Denúncias abertas</p>
+              <p class="kpi-value" id="stat-denuncias-abertas">-</p>
+              <p class="kpi-hint" id="stat-denuncias-abertas-hint">aguardando ação</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="dash-grid">
+          <article class="panel">
+            <header class="panel-head">
+              <div>
+                <h4>Denúncias por status</h4>
+                <p class="panel-sub">Distribuição de todas as denúncias da rede</p>
+              </div>
+              <button type="button" class="link-btn" data-view="denuncias">Ver todas</button>
+            </header>
+            <div class="donut-wrap">
+              <svg class="donut" viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="donut-track" cx="60" cy="60" r="42"></circle>
+                <g id="dash-donut-segments" transform="rotate(-90 60 60)"></g>
+              </svg>
+              <div class="donut-center">
+                <span id="dash-donut-total">0</span>
+                <small>denúncias</small>
+              </div>
+            </div>
+            <ul id="dash-donut-legend" class="legend"></ul>
+          </article>
+
+          <article class="panel">
+            <header class="panel-head">
+              <div>
+                <h4>Solicitações de ONG</h4>
+                <p class="panel-sub" id="dash-pendentes-resumo">Carregando...</p>
+              </div>
+              <button type="button" class="link-btn" data-view="ongs">Ver todas</button>
+            </header>
+            <div id="dash-pendentes" class="pending-list"></div>
+          </article>
+        </div>
+
+        <div class="dash-grid">
+          <article class="panel">
+            <header class="panel-head">
+              <div>
+                <h4>Últimas denúncias</h4>
+                <p class="panel-sub">Atualizações mais recentes da comunidade</p>
+              </div>
+              <button type="button" class="link-btn" data-view="denuncias">Ver todas</button>
+            </header>
+            <div id="dash-ultimas" class="recent-list"></div>
+          </article>
+
+          <article class="panel">
+            <header class="panel-head">
+              <div>
+                <h4>Ações rápidas</h4>
+                <p class="panel-sub">Atalhos do painel</p>
+              </div>
+            </header>
+
+            <div class="quick-actions">
+              <button type="button" class="quick-action" data-view="ongs">
+                <span class="quick-icon quick-icon-blue">+</span>
+                <span class="quick-text">
+                  <strong>Aprovar ONGs</strong>
+                  <small>Analise novas solicitações</small>
+                </span>
+              </button>
+              <button type="button" class="quick-action" data-view="denuncias">
+                <span class="quick-icon quick-icon-red">!</span>
+                <span class="quick-text">
+                  <strong>Ver denúncias</strong>
+                  <small>Acompanhe os chamados</small>
+                </span>
+              </button>
+              <button type="button" class="quick-action" data-view="usuarios">
+                <span class="quick-icon quick-icon-green">@</span>
+                <span class="quick-text">
+                  <strong>Gerenciar usuários</strong>
+                  <small>Perfis e permissões</small>
+                </span>
+              </button>
+            </div>
+
+            <div class="network-summary">
+              <p class="network-title">Composição da rede</p>
+              <div id="dash-composicao" class="composition"></div>
+            </div>
+          </article>
         </div>
       </section>
 
       <!-- Usuários -->
       <section id="view-usuarios" class="page">
         <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nome</th>
-                <th>E-mail</th>
-                <th>Perfil</th>
-              </tr>
-            </thead>
-            <tbody id="usuarios-tbody"></tbody>
-          </table>
+          <div class="table-toolbar">
+            <div>
+              <h4>Usuários cadastrados</h4>
+              <p class="panel-sub" id="usuarios-count">Carregando...</p>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Perfil</th>
+                </tr>
+              </thead>
+              <tbody id="usuarios-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       <!-- Áreas -->
       <section id="view-areas" class="page">
         <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Cidade</th>
-                <th>Bairro</th>
-                <th>Rua</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="areas-tbody"></tbody>
-          </table>
+          <div class="table-toolbar">
+            <div>
+              <h4>Áreas monitoradas</h4>
+              <p class="panel-sub" id="areas-count">Carregando...</p>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Cidade</th>
+                  <th>Bairro</th>
+                  <th>Rua</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="areas-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       <!-- ONGs -->
       <section id="view-ongs" class="page">
         <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Região</th>
-                <th>CNPJ</th>
-                <th>Telefone</th>
-                <th>Descrição</th>
-                <th>Responsável</th>
-              </tr>
-            </thead>
-            <tbody id="ongs-tbody"></tbody>
-          </table>
+          <div class="table-toolbar">
+            <div>
+              <h4>ONGs da rede</h4>
+              <p class="panel-sub" id="ongs-count">Carregando...</p>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ONG</th>
+                  <th>Região</th>
+                  <th>CNPJ</th>
+                  <th>Telefone</th>
+                  <th>Responsável</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="ongs-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       <!-- Denúncias -->
       <section id="view-denuncias" class="page">
         <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Título</th>
-                <th>Status</th>
-                <th>Área</th>
-                <th>Autor</th>
-                <th>Data</th>
-                <th>Descrição</th>
-              </tr>
-            </thead>
-            <tbody id="denuncias-tbody"></tbody>
-          </table>
+          <div class="table-toolbar">
+            <div>
+              <h4>Denúncias registradas</h4>
+              <p class="panel-sub" id="denuncias-count">Carregando...</p>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Título</th>
+                  <th>Status</th>
+                  <th>Área</th>
+                  <th>Autor</th>
+                  <th>Data</th>
+                  <th>Descrição</th>
+                </tr>
+              </thead>
+              <tbody id="denuncias-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
     </main>
