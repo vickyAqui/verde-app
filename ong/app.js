@@ -32,11 +32,35 @@ function initials(name) {
   return ((parts[0] || '?')[0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
 }
 
-async function api(path, options = {}) {
+const RETRYABLE_STATUS = new Set([502, 503, 504]);
+const RETRYABLE_METHODS = new Set(['GET', 'PUT', 'DELETE', 'PATCH']);
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function api(path, options = {}, attempt = 0) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (state.token) headers.Authorization = `Bearer ${state.token}`;
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const method = String(options.method || 'GET').toUpperCase();
+  const canRetry = RETRYABLE_METHODS.has(method) && attempt < 2;
+
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  } catch (err) {
+    if (canRetry) {
+      await sleep(700 * (attempt + 1));
+      return api(path, options, attempt + 1);
+    }
+    throw new Error('Sem conexão com o servidor. Verifique sua internet e tente novamente.');
+  }
+
+  if (RETRYABLE_STATUS.has(res.status) && canRetry) {
+    await sleep(700 * (attempt + 1));
+    return api(path, options, attempt + 1);
+  }
 
   if (res.status === 401 || res.status === 403) {
     logout();
@@ -45,6 +69,12 @@ async function api(path, options = {}) {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
+    if (res.status === 429) {
+      throw new Error('Muitas tentativas em pouco tempo. Aguarde alguns instantes e tente novamente.');
+    }
+    if (res.status >= 500) {
+      throw new Error(data.error || 'O servidor está instável no momento. Tente novamente em instantes.');
+    }
     throw new Error(data.error || 'Erro na requisição');
   }
 
