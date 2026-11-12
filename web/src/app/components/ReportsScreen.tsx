@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation } from "react-router";
-import { AlertTriangle, CheckCircle2, Image, Loader2, LocateFixed, MapPin, Scissors, TreePine, TriangleAlert, XCircle } from "lucide-react";
-import { api, type Area, type Denuncia } from "../../lib/api";
+import { AlertTriangle, CheckCircle2, Image, ImagePlus, Loader2, LocateFixed, MapPin, Scissors, TreePine, TriangleAlert, X, XCircle } from "lucide-react";
+import { ApiError, api, getDenunciaFotos, type Area, type Denuncia } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useFetch } from "../../lib/use-fetch";
 import { Card, DataError, EmptyState, Loading, StatusBadge, num } from "./ui";
-import { upload } from "@imagekit/react";
-import { ImagePlus, X } from "lucide-react"; // add to your existing lucide import
 import { DenunciaImageDialog } from "./DenunciaImageDialog";
 
 const categories = [
@@ -17,6 +15,8 @@ const categories = [
 ] as const;
 
 type CatKey = (typeof categories)[number]["key"];
+
+const MAX_REPORT_PHOTOS = 3;
 
 const DEN_STATUS = {
   aberta: { label: "Aberta", join: "badge-error" },
@@ -32,7 +32,6 @@ function parseAddress(raw: string) {
   };
 }
 
-type IkAuth = { token: string; expire: number; signature: string };
 const MAX_PHOTO_MB = 5;
 
 export function ReportsScreen() {
@@ -49,25 +48,30 @@ export function ReportsScreen() {
   const [category, setCategory] = useState<CatKey | "">("");
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
-  const [foto, setFoto] = useState("");
+  const [fotos, setFotos] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [protocol, setProtocol] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [imageReport, setImageReport] = useState<{ foto: string; titulo: string } | null>(null);
+  const [imageReport, setImageReport] = useState<{ fotos: string[]; titulo: string } | null>(null);
 
   async function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = ""; 
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
 
-    if (!file.type.startsWith("image/")) {
+    if (fotos.length + files.length > MAX_REPORT_PHOTOS) {
+      setError(`Você pode adicionar no máximo ${MAX_REPORT_PHOTOS} fotos por denúncia.`);
+      return;
+    }
+
+    if (files.some((file) => !file.type.startsWith("image/"))) {
       setError("Escolha um arquivo de imagem.");
       return;
     }
-    if (file.size > MAX_PHOTO_MB * 1024 * 1024) {
+    if (files.some((file) => file.size > MAX_PHOTO_MB * 1024 * 1024)) {
       setError(`A foto deve ter no máximo ${MAX_PHOTO_MB} MB.`);
       return;
     }
@@ -77,22 +81,24 @@ export function ReportsScreen() {
     setProgress(0);
 
     try {
-      const auth = await api.get<IkAuth>("/imagekit/auth");
-      const result = await upload({
-        file,
-        fileName: file.name,
-        publicKey: import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY,
-        token: auth.token,
-        expire: auth.expire,
-        signature: auth.signature,
-        folder: "/denuncias",
-        useUniqueFileName: true,
-        onProgress: (evt) => setProgress(Math.round((evt.loaded / evt.total) * 100)),
-      });
-      setFoto(result.url ?? "");
+      for (const [index, file] of files.entries()) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const result = await api.post<{ url: string }>("/imagekit/upload", formData);
+        const uploadedUrl = result.url;
+        if (typeof uploadedUrl !== "string" || !uploadedUrl.trim()) {
+          throw new Error("O serviço de imagens não retornou o endereço do arquivo.");
+        }
+        setFotos((current) => [...current, uploadedUrl]);
+        setProgress(Math.round(((index + 1) / files.length) * 100));
+      }
     } catch (err) {
-      console.log("Erro ao enviar a foto", err);
-      setError("Não foi possível enviar a foto. Tente novamente.");
+      console.error("Erro ao enviar as fotos", err);
+      setError(
+        err instanceof ApiError && err.status === 429
+          ? err.message
+          : "Não foi possível enviar todas as fotos. Tente novamente.",
+      );
     } finally {
       setUploading(false);
     }
@@ -147,7 +153,7 @@ export function ReportsScreen() {
     setCategory("");
     setAddress("");
     setDescription("");
-    setFoto("");
+    setFotos([]);
     setProtocol(null);
     setProgress(0);
     setError(null);
@@ -179,7 +185,7 @@ export function ReportsScreen() {
         idArea: area.idArea,
         titulo: label,
         descricao: description.trim() || undefined,
-        foto: foto.trim() || undefined,
+        fotos,
       });
       setProtocol(res.denuncia.idDenuncia);
       denuncias.reload();
@@ -308,50 +314,58 @@ export function ReportsScreen() {
               />
             </label>
 
-            {/* Foto */}
+            {/* Fotos */}
             <div>
               <span className="mb-2 block text-xs font-semibold text-muted-foreground">
-                Foto <span className="font-normal text-muted-foreground/70">(opcional)</span>
+                Fotos <span className="font-normal text-muted-foreground/70">
+                  (opcional, até {MAX_REPORT_PHOTOS} por denúncia; 20 envios por 24 horas)
+                </span>
               </span>
-
-              {foto ? (
-                <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white">
-                  <img
-                    src={`${foto}?tr=w-600,q-80,f-auto`}
-                    alt="Foto da denúncia"
-                    className="h-44 w-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setFoto("")}
-                    title="Remover foto"
-                    className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-black/60 text-white"
-                  >
-                    <X size={14} />
-                  </button>
+              {fotos.length > 0 && (
+                <div className="mb-2 grid grid-cols-3 gap-2">
+                  {fotos.map((url, index) => (
+                    <div key={url} className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white">
+                      <img
+                        src={`${url}?tr=w-300,q-80,f-auto`}
+                        alt={`Foto ${index + 1} da denúncia`}
+                        className="h-24 w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFotos((current) => current.filter((_, i) => i !== index))}
+                        title="Remover foto"
+                        aria-label={`Remover foto ${index + 1}`}
+                        className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-white"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-black/[0.15] bg-white px-3.5 py-5 text-[13px] font-medium text-muted-foreground">
-                  {uploading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Enviando… {progress}%
-                    </>
-                  ) : (
-                    <>
-                      <ImagePlus size={17} />
-                      Adicionar foto
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={onPickPhoto}
-                    disabled={uploading}
-                    className="hidden"
-                  />
-                </label>
               )}
+              <label className={`flex items-center justify-center gap-2 rounded-xl border border-dashed border-black/[0.15] bg-white px-3.5 py-5 text-[13px] font-medium text-muted-foreground ${
+                uploading || fotos.length >= MAX_REPORT_PHOTOS ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+              }`}>
+                {uploading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Enviando… {progress}%
+                  </>
+                ) : (
+                  <>
+                    <ImagePlus size={17} />
+                    Adicionar fotos ({fotos.length}/{MAX_REPORT_PHOTOS})
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={onPickPhoto}
+                  disabled={uploading || fotos.length >= MAX_REPORT_PHOTOS}
+                  className="hidden"
+                />
+              </label>
             </div>
 
             {error && (
@@ -396,15 +410,15 @@ export function ReportsScreen() {
                           <MapPin size={11} className="shrink-0 text-primary" />
                           {r.area?.rua || r.area?.bairro || "Cidade Tiradentes"} · {r.dataDenuncia}
                         </p>
-                        {r.foto && (
+                        {getDenunciaFotos(r).length > 0 && (
                           <button
                             type="button"
-                            onClick={() => setImageReport(r.foto ? { foto: r.foto, titulo: r.titulo } : null)}
-                            aria-label={`Ver imagem da denúncia ${r.titulo}`}
+                            onClick={() => setImageReport({ fotos: getDenunciaFotos(r), titulo: r.titulo })}
+                            aria-label={`Ver fotos da denúncia ${r.titulo}`}
                             className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
                           >
                             <Image size={14} />
-                            Ver imagem
+                            Ver fotos ({getDenunciaFotos(r).length})
                           </button>
                         )}
                       </div>

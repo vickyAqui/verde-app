@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { MapContainer, TileLayer, Marker, Circle, Polygon, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { AlertTriangle, Crosshair, Expand, Image, MapPin, Navigation, Search } from "lucide-react";
-import { api, type Area, type Denuncia } from "../../lib/api";
+import { api, getDenunciaFotos, type Area, type Denuncia } from "../../lib/api";
 import { useFetch } from "../../lib/use-fetch";
 import { Card, DataError, EmptyState, Loading, StatusBadge, num } from "./ui";
 import { DenunciaImageDialog } from "./DenunciaImageDialog";
@@ -64,7 +64,7 @@ type Row = {
   raio: number | null;
   poligono: LatLng[] | null;
   denunciasCount?: number;
-  foto?: string | null;
+  fotos?: string[];
 };
 
 function parsePoligono(raw: Area["poligono"]): LatLng[] | null {
@@ -179,7 +179,7 @@ export function MapScreen() {
   const [locError, setLocError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [fitSignal, setFitSignal] = useState(0);
-  const [imageReport, setImageReport] = useState<{ foto: string; titulo: string } | null>(null);
+  const [imageReport, setImageReport] = useState<{ fotos: string[]; titulo: string } | null>(null);
 
   const areas = useFetch<Area[]>(() => api.get("/areas").then((r) => r.areas));
   const denuncias = useFetch<Denuncia[]>(() => api.get("/denuncias").then((r) => r.denuncias));
@@ -236,7 +236,7 @@ export function MapScreen() {
         title: d.titulo,
         sub: `${d.area?.rua || d.area?.bairro || "Cidade Tiradentes"} · ${d.dataDenuncia}`,
         status: d.statusDenuncia,
-        foto: d.foto,
+        fotos: getDenunciaFotos(d),
         lat: d.area?.latitude ?? null,
         lng: d.area?.longitude ?? null,
         raio: typeof d.area?.raio === "number" ? d.area.raio : null,
@@ -407,20 +407,15 @@ export function MapScreen() {
                             </>
                           )}
                         </p>
-                        {!isArea && r.foto && (
+                        {!isArea && r.fotos && r.fotos.length > 0 && (
                           <button
                             onClick={() => {
-                              if (r.foto) {
-                                setImageReport({
-                                  foto: r.foto,
-                                  titulo: r.title,
-                                });
-                              }
+                              setImageReport({ fotos: r.fotos ?? [], titulo: r.title });
                             }}
                             className="btn btn-outline mt-2 w-full border-[0.5px] border-primary text-sm font-semibold"
                           >
                             <Image size={16} />
-                            Ver imagem da denúncia
+                            Ver fotos da denúncia
                           </button>
                         )}
                       </div>
@@ -590,20 +585,15 @@ export function MapScreen() {
                           >
                             {r.kind === "area" ? "Denunciar esta área" : "Ver minha denúncia"}
                           </button>
-                          {r.kind === "denuncia" && r.foto && (
+                          {r.kind === "denuncia" && r.fotos && r.fotos.length > 0 && (
                             <button
                               onClick={() => {
-                                if (r.foto) {
-                                  setImageReport({
-                                    foto: r.foto,
-                                    titulo: r.title,
-                                  });
-                                }
+                                setImageReport({ fotos: r.fotos ?? [], titulo: r.title });
                               }}
                               className="btn btn-outline mt-2 w-full border-[0.5px] border-primary text-sm font-semibold"
                             >
                               <Image size={16} />
-                              Ver imagem da denúncia
+                              Ver fotos da denúncia
                             </button>
                           )}
                         </Card>

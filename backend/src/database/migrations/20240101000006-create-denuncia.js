@@ -40,8 +40,8 @@ module.exports = {
         type: Sequelize.STRING(100),
         allowNull: true,
       },
-      foto: {
-        type: Sequelize.STRING(255),
+      fotos: {
+        type: Sequelize.JSON,
         allowNull: true,
       },
     });

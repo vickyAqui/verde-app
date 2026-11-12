@@ -4,8 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3000;
-const BACKEND_URL = 'https://verde-app-backend.onrender.com';
-const BACKEND_URL_LOCAL = 'http://localhost:3333';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3333';
 
 const ROOT = __dirname;
 const MIME = {
@@ -35,11 +34,12 @@ function serveStatic(req, res, urlPath) {
 }
 
 function proxyApi(req, res, urlPath) {
-  const backend = new URL(BACKEND_URL + urlPath);
-  const proxy = https.request(
+  const backend = new URL(urlPath, BACKEND_URL);
+  const transport = backend.protocol === 'https:' ? https : http;
+  const proxy = transport.request(
     {
       hostname: backend.hostname,
-      port: 443,
+      port: backend.port || undefined,
       path: backend.pathname + backend.search,
       method: req.method,
       headers: { ...req.headers, host: backend.host },

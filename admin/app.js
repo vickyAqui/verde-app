@@ -34,6 +34,51 @@ function escapeHtml(str) {
   }[c]));
 }
 
+function safeImageUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function renderDenunciaFotos(fotos) {
+  const urls = Array.isArray(fotos) ? fotos.map(safeImageUrl).filter(Boolean) : [];
+
+  if (!urls.length) return '<span class="cell-muted">Sem imagens</span>';
+
+  return `<div class="denuncia-photos">${urls
+    .map(
+      (url, index) => `
+        <button type="button" class="denuncia-photo-button" data-denuncia-photo="${escapeHtml(url)}" aria-label="Ampliar imagem ${index + 1}">
+          <img src="${escapeHtml(url)}" alt="Imagem ${index + 1} da denúncia" loading="lazy">
+        </button>
+      `,
+    )
+    .join('')}</div>`;
+}
+
+function openDenunciaPhotoDialog(url) {
+  const image = $('#denuncia-image-preview');
+  image.src = url;
+  $('#denuncia-image-dialog').showModal();
+}
+
+function closeDenunciaPhotoDialog() {
+  const dialog = $('#denuncia-image-dialog');
+  if (!dialog.open || dialog.classList.contains('closing')) return;
+
+  dialog.classList.add('closing');
+  const finishClose = (event) => {
+    if (event.target !== dialog || event.animationName !== 'denuncia-dialog-out') return;
+    dialog.removeEventListener('animationend', finishClose);
+    dialog.close();
+    dialog.classList.remove('closing');
+  };
+  dialog.addEventListener('animationend', finishClose);
+}
+
 function initials(name) {
   if (!name) return '?';
   const parts = String(name).trim().split(/\s+/);
@@ -610,7 +655,7 @@ function badgeDenuncia(status) {
 async function loadDenuncias() {
   const tbody = $('#denuncias-tbody');
   const count = $('#denuncias-count');
-  tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Carregando...</td></tr>';
 
   try {
     const { denuncias } = await api('/admin/denuncias');
@@ -618,7 +663,7 @@ async function loadDenuncias() {
     count.textContent = `${denuncias.length} denúncia(s) · ${abertas} aberta(s)`;
 
     if (!denuncias.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhuma denúncia encontrada.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhuma denúncia encontrada.</td></tr>';
       return;
     }
 
@@ -633,13 +678,14 @@ async function loadDenuncias() {
           <td>${d.area ? areaLabel(d.area) : '-'}</td>
           <td>${d.usuario ? escapeHtml(d.usuario.nome) : '-'}</td>
           <td>${formatDate(d.dataDenuncia)}</td>
+          <td>${renderDenunciaFotos(d.fotos)}</td>
           <td><span class="cell-desc">${escapeHtml(d.descricao)}</span></td>
         </tr>
       `)
       .join('');
   } catch (err) {
     count.textContent = 'Não foi possível carregar';
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">${escapeHtml(err.message)}</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
@@ -665,6 +711,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!btn) return;
       handleOngAction(btn, btn.dataset.action === 'approve');
     });
+  });
+
+  $('#denuncias-tbody').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-denuncia-photo]');
+    if (!button) return;
+    openDenunciaPhotoDialog(button.dataset.denunciaPhoto);
+  });
+
+  $('#denuncia-image-close').addEventListener('click', () => {
+    closeDenunciaPhotoDialog();
+  });
+  $('#denuncia-image-dialog').addEventListener('click', (event) => {
+    if (event.target === event.currentTarget) closeDenunciaPhotoDialog();
+  });
+  $('#denuncia-image-dialog').addEventListener('cancel', (event) => {
+    event.preventDefault();
+    closeDenunciaPhotoDialog();
   });
 
   if (state.token) {

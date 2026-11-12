@@ -13,7 +13,7 @@ import {
   Sprout,
   Users,
 } from "lucide-react";
-import { ApiError, api, type Area, type Denuncia, type Ong, type Projeto } from "../../lib/api";
+import { ApiError, api, getDenunciaFotos, type Area, type Denuncia, type Ong, type Projeto } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { ADMIN_PANEL_URL, ONG_PANEL_URL } from "../../lib/panels";
 import { useFetch } from "../../lib/use-fetch";
@@ -29,7 +29,7 @@ const DEN_STATUS = {
 export function ProfileScreen() {
   const { user, tipo, signOut } = useAuth();
   const navigate = useNavigate();
-  const [imageReport, setImageReport] = useState<{ foto: string; titulo: string } | null>(null);
+  const [imageReport, setImageReport] = useState<{ fotos: string[]; titulo: string } | null>(null);
 
   const denuncias = useFetch<Denuncia[]>(() => api.get("/denuncias").then((r) => r.denuncias));
   const areas = useFetch<Area[]>(() => api.get("/areas").then((r) => r.areas));
@@ -125,15 +125,15 @@ export function ProfileScreen() {
                     <MapPin size={11} className="shrink-0 text-primary" />
                     {d.area?.rua || d.area?.bairro || "Cidade Tiradentes"} · {d.dataDenuncia}
                   </p>
-                  {d.foto && (
+                  {getDenunciaFotos(d).length > 0 && (
                     <button
                       type="button"
-                      onClick={() => setImageReport(d.foto ? { foto: d.foto, titulo: d.titulo } : null)}
-                      aria-label={`Ver imagem da denúncia ${d.titulo}`}
+                      onClick={() => setImageReport({ fotos: getDenunciaFotos(d), titulo: d.titulo })}
+                      aria-label={`Ver fotos da denúncia ${d.titulo}`}
                       className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
                     >
                       <Image size={14} />
-                      Ver imagem
+                      Ver fotos ({getDenunciaFotos(d).length})
                     </button>
                   )}
                 </div>

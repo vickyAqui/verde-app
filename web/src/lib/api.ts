@@ -27,10 +27,14 @@ export type Denuncia = {
   dataDenuncia: string;
   statusDenuncia: string;
   descricao: string | null;
-  foto: string | null;
+  fotos: string[] | null;
   usuario?: Pick<Usuario, "idUsuario" | "nome">;
   area?: Pick<Area, "idArea" | "cidade" | "bairro" | "rua" | "latitude" | "longitude" | "raio" | "poligono" | "statusArea">;
 };
+
+export function getDenunciaFotos(denuncia: Pick<Denuncia, "fotos">): string[] {
+  return denuncia.fotos?.filter((url) => typeof url === "string" && url.trim().length > 0) ?? [];
+}
 
 export type Ong = {
   idOng: number;
@@ -74,8 +78,8 @@ export type OngDashboard = {
   denuncias: Denuncia[];
 };
 
-const API_BASE = "https://verde-app-backend.onrender.com/api"
-const API_BASE_LOCAL = "http://localhost:3333/api"
+const API_BASE_LOCAL = "https://verde-app-backend.onrender.com/api"
+const API_BASE = "http://localhost:3333/api"
 const TOKEN_KEY = "@verde:token";
 const USER_KEY = "@verde:user";
 
@@ -129,13 +133,20 @@ async function request<T>(
   }
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };
+  let requestBody: BodyInit | undefined;
+  if (body instanceof FormData) {
+    delete headers["Content-Type"];
+    requestBody = body;
+  } else if (body !== undefined) {
+    requestBody = JSON.stringify(body);
+  }
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(url.toString(), {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: requestBody,
   });
 
   let data: any = null;

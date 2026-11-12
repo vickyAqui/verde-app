@@ -85,8 +85,8 @@ module.exports = {
     await queryInterface.bulkInsert('tbl_Projeto', projetos);
 
     const denuncias = [ 
-      { idDenuncia: 1, idUsuario: 3, idArea: 2, titulo: 'Desmatamento na rua', dataDenuncia: '2026-01-15', statusDenuncia: 'aberta', descricao: 'Área com árvores derrubadas próxima à Rua Inácio Monteiro', foto: null },
-      { idDenuncia: 2, idUsuario: 3, idArea: 1, titulo: 'Descarte irregular de entulho', dataDenuncia: '2026-02-10', statusDenuncia: 'em tratamento', descricao: 'Entulho acumulado às margens da Estrada do Iguatemi', foto: null },
+      { idDenuncia: 1, idUsuario: 3, idArea: 2, titulo: 'Desmatamento na rua', dataDenuncia: '2026-01-15', statusDenuncia: 'aberta', descricao: 'Área com árvores derrubadas próxima à Rua Inácio Monteiro', fotos: null },
+      { idDenuncia: 2, idUsuario: 3, idArea: 1, titulo: 'Descarte irregular de entulho', dataDenuncia: '2026-02-10', statusDenuncia: 'em tratamento', descricao: 'Entulho acumulado às margens da Estrada do Iguatemi', fotos: null },
     ]
     await queryInterface.bulkInsert('tbl_Denuncia', denuncias);
 

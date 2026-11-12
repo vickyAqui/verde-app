@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -6,7 +7,7 @@ import {
 } from "./ui/dialog";
 
 type ReportImage = {
-  foto: string;
+  fotos: string[];
   titulo: string;
 };
 
@@ -18,10 +19,12 @@ export function DenunciaImageDialog({
   onClose: () => void;
 }) {
   const [imageError, setImageError] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     setImageError(false);
-  }, [report?.foto]);
+    setCurrentIndex(0);
+  }, [report]);
 
   return (
     <Dialog
@@ -36,8 +39,8 @@ export function DenunciaImageDialog({
         </DialogTitle>
         {report && !imageError ? (
           <img
-            src={report.foto}
-            alt={`Imagem da denúncia: ${report.titulo}`}
+            src={report.fotos[currentIndex]}
+            alt={`Imagem ${currentIndex + 1} da denúncia: ${report.titulo}`}
             onError={() => setImageError(true)}
             className="max-h-[75dvh] w-full rounded-md object-contain"
           />
@@ -47,6 +50,35 @@ export function DenunciaImageDialog({
               ? "Não foi possível carregar esta imagem."
               : "Esta denúncia não possui imagem."}
           </p>
+        )}
+        {report && report.fotos.length > 1 && (
+          <div className="flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentIndex((index) => (index - 1 + report.fotos.length) % report.fotos.length);
+                setImageError(false);
+              }}
+              aria-label="Imagem anterior"
+              className="rounded-full p-2 text-foreground hover:bg-black/5"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span className="text-sm text-muted-foreground">
+              {currentIndex + 1} / {report.fotos.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentIndex((index) => (index + 1) % report.fotos.length);
+                setImageError(false);
+              }}
+              aria-label="Próxima imagem"
+              className="rounded-full p-2 text-foreground hover:bg-black/5"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
         )}
       </DialogContent>
     </Dialog>
