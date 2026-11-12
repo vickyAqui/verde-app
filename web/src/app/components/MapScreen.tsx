@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { MapContainer, TileLayer, Marker, Circle, Polygon, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import { AlertTriangle, Crosshair, Expand, MapPin, Navigation, Search } from "lucide-react";
+import { AlertTriangle, Crosshair, Expand, Image, MapPin, Navigation, Search } from "lucide-react";
 import { api, type Area, type Denuncia } from "../../lib/api";
 import { useFetch } from "../../lib/use-fetch";
 import { Card, DataError, EmptyState, Loading, StatusBadge, num } from "./ui";
+import { DenunciaImageDialog } from "./DenunciaImageDialog";
 
 export const CT_CENTER = { lat: -23.569, lng: -46.419 };
 
@@ -63,6 +64,7 @@ type Row = {
   raio: number | null;
   poligono: LatLng[] | null;
   denunciasCount?: number;
+  foto?: string | null;
 };
 
 function parsePoligono(raw: Area["poligono"]): LatLng[] | null {
@@ -177,6 +179,7 @@ export function MapScreen() {
   const [locError, setLocError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [fitSignal, setFitSignal] = useState(0);
+  const [imageReport, setImageReport] = useState<{ foto: string; titulo: string } | null>(null);
 
   const areas = useFetch<Area[]>(() => api.get("/areas").then((r) => r.areas));
   const denuncias = useFetch<Denuncia[]>(() => api.get("/denuncias").then((r) => r.denuncias));
@@ -233,6 +236,7 @@ export function MapScreen() {
         title: d.titulo,
         sub: `${d.area?.rua || d.area?.bairro || "Cidade Tiradentes"} · ${d.dataDenuncia}`,
         status: d.statusDenuncia,
+        foto: d.foto,
         lat: d.area?.latitude ?? null,
         lng: d.area?.longitude ?? null,
         raio: typeof d.area?.raio === "number" ? d.area.raio : null,
@@ -342,7 +346,6 @@ export function MapScreen() {
             ))}
           </div>
         </div>
-
         {/* ── Mapa real com áreas demarcadas ── */}
         <div className="relative h-[42vh] shrink-0 overflow-hidden">
           <MapContainer
@@ -404,6 +407,22 @@ export function MapScreen() {
                             </>
                           )}
                         </p>
+                        {!isArea && r.foto && (
+                          <button
+                            onClick={() => {
+                              if (r.foto) {
+                                setImageReport({
+                                  foto: r.foto,
+                                  titulo: r.title,
+                                });
+                              }
+                            }}
+                            className="btn btn-outline mt-2 w-full border-[0.5px] border-primary text-sm font-semibold"
+                          >
+                            <Image size={16} />
+                            Ver imagem da denúncia
+                          </button>
+                        )}
                       </div>
                     </Popup>
                   </Marker>
@@ -507,84 +526,101 @@ export function MapScreen() {
                   const active = selected?.key === r.key;
                   const noGeo = r.lat === null || r.lng === null;
                   return (
-                    <button
-                      key={r.key}
-                      onClick={() => setSelected(active ? null : r)}
-                      className={`flex items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors ${
-                        active
-                          ? "border-primary/40 bg-primary/[0.06]"
-                          : "border-black/[0.06] bg-white"
-                      }`}
-                    >
-                      <span
-                        className="size-3 shrink-0 rounded-full"
-                        style={{
-                          background:
-                            r.kind === "area"
-                              ? (AREA_COLORS[r.status] ?? AREA_COLORS.identificada)
-                              : "#C9731D",
-                          opacity: noGeo ? 0.35 : 1,
-                        }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">{r.title}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {r.sub}
-                          {r.kind === "area" && !noGeo && (
-                            <span className="font-medium"> · {r.poligono ? "polígono" : fmtAreaM2(raioOf(r.status, r.raio))}</span>
+                    <div key={r.key} className="flex flex-col gap-2">
+                      <button
+                        onClick={() => setSelected(active ? null : r)}
+                        className={`flex items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors ${
+                          active
+                            ? "border-primary/40 bg-primary/[0.06]"
+                            : "border-black/[0.06] bg-white"
+                        }`}
+                      >
+                        <span
+                          className="size-3 shrink-0 rounded-full"
+                          style={{
+                            background:
+                              r.kind === "area"
+                                ? (AREA_COLORS[r.status] ?? AREA_COLORS.identificada)
+                                : "#C9731D",
+                            opacity: noGeo ? 0.35 : 1,
+                          }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-foreground">{r.title}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {r.sub}
+                            {r.kind === "area" && !noGeo && (
+                              <span className="font-medium"> · {r.poligono ? "polígono" : fmtAreaM2(raioOf(r.status, r.raio))}</span>
+                            )}
+                            {noGeo && <span className="font-medium"> · sem mapa</span>}
+                            {dist !== null && <span className="font-medium text-primary"> · {fmtDist(dist)}</span>}
+                          </p>
+                        </div>
+                        <StatusBadge status={r.status} map={r.kind === "area" ? AREA_STATUS : DEN_STATUS}/>
+                      </button>
+                      {active && (
+                        <Card className="!border-primary/30 p-4">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                            {r.kind === "area" ? "Área selecionada" : "Denúncia selecionada"}
+                          </p>
+                          <p className="mt-1.5 font-display text-lg font-semibold leading-snug text-foreground">
+                            {r.title}
+                          </p>
+                          <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                            {r.sub}
+                            {r.kind === "area" && r.lat !== null && (
+                              <> · cobertura {r.poligono ? "em polígono irregular" : fmtAreaM2(raioOf(r.status, r.raio))}</>
+                            )}
+                            {r.kind === "area" && (r.denunciasCount ?? 0) > 0 && (
+                              <> · {num(r.denunciasCount)} denúncia{(r.denunciasCount ?? 0) === 1 ? "" : "s"}</>
+                            )}
+                          </p>
+                          {r.kind === "area" && r.status === "identificada" && (
+                            <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                              Esta área ainda não tem árvores. Sua denúncia ajuda a ONG a priorizar o local.
+                            </p>
                           )}
-                          {noGeo && <span className="font-medium"> · sem mapa</span>}
-                          {dist !== null && <span className="font-medium text-primary"> · {fmtDist(dist)}</span>}
-                        </p>
-                      </div>
-                      <StatusBadge
-                        status={r.status}
-                        map={r.kind === "area" ? AREA_STATUS : DEN_STATUS}
-                      />
-                    </button>
+                          <button
+                            onClick={() =>
+                              navigate("/denunciar", {
+                                state: { address: r.title },
+                              })
+                            }
+                            className="btn btn-primary mt-3 w-full text-sm font-semibold"
+                          >
+                            {r.kind === "area" ? "Denunciar esta área" : "Ver minha denúncia"}
+                          </button>
+                          {r.kind === "denuncia" && r.foto && (
+                            <button
+                              onClick={() => {
+                                if (r.foto) {
+                                  setImageReport({
+                                    foto: r.foto,
+                                    titulo: r.title,
+                                  });
+                                }
+                              }}
+                              className="btn btn-outline mt-2 w-full border-[0.5px] border-primary text-sm font-semibold"
+                            >
+                              <Image size={16} />
+                              Ver imagem da denúncia
+                            </button>
+                          )}
+                        </Card>
+                      )}
+                    </div>
                   );
                 })}
               </div>
 
-              {/* ── Ação do selecionado ── */}
-              {selected && (
-                <Card className="mt-3 !border-primary/30 p-4">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                    {selected.kind === "area" ? "Área selecionada" : "Denúncia selecionada"}
-                  </p>
-                  <p className="mt-1.5 font-display text-lg font-semibold leading-snug text-foreground">
-                    {selected.title}
-                  </p>
-                  <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                    {selected.sub}
-                    {selected.kind === "area" && selected.lat !== null && (
-                      <> · cobertura {selected.poligono ? "em polígono irregular" : fmtAreaM2(raioOf(selected.status, selected.raio))}</>
-                    )}
-                    {selected.kind === "area" && (selected.denunciasCount ?? 0) > 0 && (
-                      <> · {num(selected.denunciasCount)} denúncia{(selected.denunciasCount ?? 0) === 1 ? "" : "s"}</>
-                    )}
-                  </p>
-                  {selected.kind === "area" && selected.status === "identificada" && (
-                    <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                      Esta área ainda não tem árvores. Sua denúncia ajuda a ONG a priorizar o local.
-                    </p>
-                  )}
-                  <button
-                    onClick={() =>
-                      navigate("/denunciar", {
-                        state: { address: selected.title },
-                      })
-                    }
-                    className="btn btn-primary mt-3 w-full text-sm font-semibold"
-                  >
-                    {selected.kind === "area" ? "Denunciar esta área" : "Ver minha denúncia"}
-                  </button>
-                </Card>
-              )}
             </>
           )}
         </div>
       </main>
+      <DenunciaImageDialog
+        report={imageReport}
+        onClose={() => setImageReport(null)}
+      />
     </div>
   );
 }

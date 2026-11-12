@@ -54,7 +54,7 @@ export function StatusBadge({
 }) {
   const cfg = status ? map[status] : undefined;
   return (
-    <span className={`badge badge-sm gap-1 font-medium ${cfg?.join ?? fallbackJoin}`}>
+    <span className={`badge badge-sm gap-1 font-medium px-[9px] ${cfg?.join ?? fallbackJoin}`}>
       {cfg?.label ?? status ?? "—"}
     </span>
   );

@@ -36,7 +36,7 @@ const Denuncia = sequelize.define('Denuncia', {
     allowNull: false,
   },
   foto: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.STRING(255),
     allowNull: true,
   },
 }, {

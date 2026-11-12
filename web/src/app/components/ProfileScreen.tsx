@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   AlertTriangle,
   BookOpen,
   ChevronRight,
+  Image,
   Info,
   Lock,
   LogOut,
@@ -17,6 +18,7 @@ import { useAuth } from "../../lib/auth";
 import { ADMIN_PANEL_URL, ONG_PANEL_URL } from "../../lib/panels";
 import { useFetch } from "../../lib/use-fetch";
 import { Card, DataError, EmptyState, initials, Loading, num, StatusBadge } from "./ui";
+import { DenunciaImageDialog } from "./DenunciaImageDialog";
 
 const DEN_STATUS = {
   aberta: { label: "Aberta", join: "badge-error" },
@@ -27,6 +29,7 @@ const DEN_STATUS = {
 export function ProfileScreen() {
   const { user, tipo, signOut } = useAuth();
   const navigate = useNavigate();
+  const [imageReport, setImageReport] = useState<{ foto: string; titulo: string } | null>(null);
 
   const denuncias = useFetch<Denuncia[]>(() => api.get("/denuncias").then((r) => r.denuncias));
   const areas = useFetch<Area[]>(() => api.get("/areas").then((r) => r.areas));
@@ -122,6 +125,17 @@ export function ProfileScreen() {
                     <MapPin size={11} className="shrink-0 text-primary" />
                     {d.area?.rua || d.area?.bairro || "Cidade Tiradentes"} · {d.dataDenuncia}
                   </p>
+                  {d.foto && (
+                    <button
+                      type="button"
+                      onClick={() => setImageReport(d.foto ? { foto: d.foto, titulo: d.titulo } : null)}
+                      aria-label={`Ver imagem da denúncia ${d.titulo}`}
+                      className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <Image size={14} />
+                      Ver imagem
+                    </button>
+                  )}
                 </div>
                 <StatusBadge status={d.statusDenuncia} map={DEN_STATUS} />
               </Card>
@@ -219,6 +233,10 @@ export function ProfileScreen() {
           +Verde · Cidade Tiradentes — arborização urbana comunitária
         </p>
       </div>
+      <DenunciaImageDialog
+        report={imageReport}
+        onClose={() => setImageReport(null)}
+      />
     </div>
   );
 }

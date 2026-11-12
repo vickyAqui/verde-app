@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
+const { imagekitRouter } = require('./services/imagekit');
 
 const routes = require('./routes');
 const errorHandler = require('./middlewares/errorHandler');
@@ -52,6 +53,8 @@ app.get('/health', (req, res) => {
 });
 
 app.use(errorHandler);
+
+app.use('/api/imagekit', imagekitRouter);
 
 io.on('connection', (socket) => {
   console.log(`[Socket] Usuário conectado: ${socket.id}`);

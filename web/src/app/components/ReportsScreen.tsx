@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocation } from "react-router";
-import { AlertTriangle, CheckCircle2, Loader2, LocateFixed, MapPin, Scissors, TreePine, TriangleAlert, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Image, Loader2, LocateFixed, MapPin, Scissors, TreePine, TriangleAlert, XCircle } from "lucide-react";
 import { api, type Area, type Denuncia } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useFetch } from "../../lib/use-fetch";
 import { Card, DataError, EmptyState, Loading, StatusBadge, num } from "./ui";
+import { upload } from "@imagekit/react";
+import { ImagePlus, X } from "lucide-react"; // add to your existing lucide import
+import { DenunciaImageDialog } from "./DenunciaImageDialog";
 
 const categories = [
   { key: "sem-arvores", label: "Local sem árvores", Icon: TreePine },
@@ -29,6 +32,9 @@ function parseAddress(raw: string) {
   };
 }
 
+type IkAuth = { token: string; expire: number; signature: string };
+const MAX_PHOTO_MB = 5;
+
 export function ReportsScreen() {
   const { user } = useAuth();
   const location = useLocation();
@@ -48,6 +54,49 @@ export function ReportsScreen() {
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [protocol, setProtocol] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [imageReport, setImageReport] = useState<{ foto: string; titulo: string } | null>(null);
+
+  async function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; 
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Escolha um arquivo de imagem.");
+      return;
+    }
+    if (file.size > MAX_PHOTO_MB * 1024 * 1024) {
+      setError(`A foto deve ter no máximo ${MAX_PHOTO_MB} MB.`);
+      return;
+    }
+
+    setError(null);
+    setUploading(true);
+    setProgress(0);
+
+    try {
+      const auth = await api.get<IkAuth>("/imagekit/auth");
+      const result = await upload({
+        file,
+        fileName: file.name,
+        publicKey: import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY,
+        token: auth.token,
+        expire: auth.expire,
+        signature: auth.signature,
+        folder: "/denuncias",
+        useUniqueFileName: true,
+        onProgress: (evt) => setProgress(Math.round((evt.loaded / evt.total) * 100)),
+      });
+      setFoto(result.url ?? "");
+    } catch (err) {
+      console.log("Erro ao enviar a foto", err);
+      setError("Não foi possível enviar a foto. Tente novamente.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function useMyLocation() {
     setError(null);
@@ -92,7 +141,7 @@ export function ReportsScreen() {
     [denuncias.data, user?.idUsuario],
   );
 
-  const canSubmit = !!category && address.trim().length > 0 && !busy;
+  const canSubmit = !!category && address.trim().length > 0 && !busy && !uploading;
 
   const reset = () => {
     setCategory("");
@@ -100,6 +149,7 @@ export function ReportsScreen() {
     setDescription("");
     setFoto("");
     setProtocol(null);
+    setProgress(0);
     setError(null);
   };
 
@@ -258,19 +308,51 @@ export function ReportsScreen() {
               />
             </label>
 
-            {/* Foto URL */}
-            <label className="block">
+            {/* Foto */}
+            <div>
               <span className="mb-2 block text-xs font-semibold text-muted-foreground">
-                Foto (URL) <span className="font-normal text-muted-foreground/70">(opcional)</span>
+                Foto <span className="font-normal text-muted-foreground/70">(opcional)</span>
               </span>
-              <input
-                type="url"
-                value={foto}
-                onChange={(e) => setFoto(e.target.value)}
-                placeholder="https://…"
-                className="w-full rounded-xl border border-black/[0.07] bg-white px-3.5 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
-              />
-            </label>
+
+              {foto ? (
+                <div className="relative overflow-hidden rounded-xl border border-black/[0.07] bg-white">
+                  <img
+                    src={`${foto}?tr=w-600,q-80,f-auto`}
+                    alt="Foto da denúncia"
+                    className="h-44 w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFoto("")}
+                    title="Remover foto"
+                    className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-black/[0.15] bg-white px-3.5 py-5 text-[13px] font-medium text-muted-foreground">
+                  {uploading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Enviando… {progress}%
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus size={17} />
+                      Adicionar foto
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={onPickPhoto}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
 
             {error && (
               <div className="flex items-start gap-2 rounded-xl border border-error/25 bg-error/10 px-3.5 py-3 text-[13px] text-error">
@@ -314,6 +396,17 @@ export function ReportsScreen() {
                           <MapPin size={11} className="shrink-0 text-primary" />
                           {r.area?.rua || r.area?.bairro || "Cidade Tiradentes"} · {r.dataDenuncia}
                         </p>
+                        {r.foto && (
+                          <button
+                            type="button"
+                            onClick={() => setImageReport(r.foto ? { foto: r.foto, titulo: r.titulo } : null)}
+                            aria-label={`Ver imagem da denúncia ${r.titulo}`}
+                            className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                          >
+                            <Image size={14} />
+                            Ver imagem
+                          </button>
+                        )}
                       </div>
                       <StatusBadge status={r.statusDenuncia} map={DEN_STATUS} />
                     </Card>
@@ -324,6 +417,10 @@ export function ReportsScreen() {
           </div>
         )}
       </div>
+      <DenunciaImageDialog
+        report={imageReport}
+        onClose={() => setImageReport(null)}
+      />
     </div>
   );
 }
