@@ -78,8 +78,8 @@ export type OngDashboard = {
   denuncias: Denuncia[];
 };
 
-const API_BASE_LOCAL = "https://verde-app-backend.onrender.com/api"
-const API_BASE = "http://localhost:3333/api"
+const API_BASE = "https://verde-app-backend.onrender.com/api"
+const API_BASE_LOCAL = "http://localhost:3333/api"
 const TOKEN_KEY = "@verde:token";
 const USER_KEY = "@verde:user";
 
