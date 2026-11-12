@@ -537,6 +537,52 @@ async function loadProjetos() {
 }
 
 /* ---------- Cadastro de ONG ---------- */
+function formatCnpjInput(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 14);
+  let formatted = digits.slice(0, 2);
+
+  if (digits.length > 2) formatted += `.${digits.slice(2, 5)}`;
+  if (digits.length > 5) formatted += `.${digits.slice(5, 8)}`;
+  if (digits.length > 8) formatted += `/${digits.slice(8, 12)}`;
+  if (digits.length > 12) formatted += `-${digits.slice(12, 14)}`;
+
+  return formatted;
+}
+
+function formatTelefoneInput(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits;
+
+  const ddd = digits.slice(0, 2);
+  const local = digits.slice(2);
+  const isMobile = digits.length === 11;
+  const firstPartLength = isMobile ? 5 : 4;
+  const firstPart = local.slice(0, firstPartLength);
+  const secondPart = local.slice(firstPartLength);
+
+  return `(${ddd}) ${firstPart}${secondPart ? `-${secondPart}` : ''}`;
+}
+
+function applyInputMask(input, formatter) {
+  input.addEventListener('input', () => {
+    const cursor = input.selectionStart ?? input.value.length;
+    const digitsBeforeCursor = input.value.slice(0, cursor).replace(/\D/g, '').length;
+    input.value = formatter(input.value);
+
+    let digitCount = 0;
+    let nextCursor = digitsBeforeCursor === 0 ? 0 : input.value.length;
+    for (let index = 0; index < input.value.length; index += 1) {
+      if (/\d/.test(input.value[index])) digitCount += 1;
+      if (digitsBeforeCursor > 0 && digitCount === digitsBeforeCursor) {
+        nextCursor = index + 1;
+        break;
+      }
+    }
+
+    input.setSelectionRange(nextCursor, nextCursor);
+  });
+}
+
 function showCadastroOng() {
   $('#view-app').classList.add('hidden');
   $('#view-login').classList.add('hidden');
@@ -630,6 +676,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('#view-login').classList.remove('hidden');
   });
   $('#cadastro-ong-form').addEventListener('submit', handleCadastroOng);
+  applyInputMask($('#cad-cnpj'), formatCnpjInput);
+  applyInputMask($('#cad-telefone'), formatTelefoneInput);
   document.querySelectorAll('.nav-link').forEach((el) => {
     el.addEventListener('click', () => navigate(el.dataset.view));
   });
