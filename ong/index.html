@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0C3322" />
   <title>+Verde | Painel Ong</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/%3E%3Cpath d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -11,28 +16,32 @@
   <div id="view-login" class="login-view hidden">
     <div class="login-card">
       <div class="login-logo">
-        <div class="login-logo-icon">+</div>
+        <div class="login-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+        </div>
         <h1>+Verde</h1>
         <p>Painel Ong</p>
       </div>
-      <form id="login-form">
-        <div class="field">
-          <label for="login-email">E-mail</label>
-          <input type="text" id="login-email" placeholder="ong@verde.com" autocomplete="email" required />
-        </div>
-        <div class="field">
-          <label for="login-senha">Senha</label>
-          <input type="password" id="login-senha" placeholder="123456" required />
-        </div>
-        <p id="login-error" class="form-error hidden"></p>
-        <button type="submit" class="btn btn-primary btn-block" id="login-btn">
-          Entrar
+      <div class="login-main">
+        <form id="login-form">
+          <div class="field">
+            <label for="login-email">E-mail</label>
+            <input type="text" id="login-email" placeholder="ong@verde.com" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="login-senha">Senha</label>
+            <input type="password" id="login-senha" placeholder="123456" required />
+          </div>
+          <p id="login-error" class="form-error hidden"></p>
+          <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+            Entrar
+          </button>
+        </form>
+        <p class="login-hint">Credenciais de teste: maria@verde.com / 123456</p>
+        <button type="button" id="cadastro-ong-btn" class="btn btn-outline btn-block">
+          Cadastre sua ONG
         </button>
-      </form>
-      <p class="login-hint">Credenciais de teste: maria@verde.com / 123456</p>
-      <button type="button" id="cadastro-ong-btn" class="btn btn-outline btn-block">
-        Cadastre sua ONG
-      </button>
+      </div>
     </div>
   </div>
 
@@ -44,46 +53,48 @@
         <h1>+Verde</h1>
         <p>Cadastro de ONG</p>
       </div>
-      <button type="button" id="voltar-login-btn" class="btn btn-outline btn-block">
-        ← Voltar ao login
-      </button>
-      <form id="cadastro-ong-form">
-        <div class="field">
-          <label for="cad-nome">Nome da ONG</label>
-          <input type="text" id="cad-nome" placeholder="Instituto Verde" required />
-        </div>
-        <div class="field">
-          <label for="cad-email">E-mail</label>
-          <input type="text" id="cad-email" placeholder="ong@email.com" autocomplete="email" required />
-        </div>
-        <div class="field">
-          <label for="cad-senha">Senha</label>
-          <input type="password" id="cad-senha" placeholder="Mínimo 6 caracteres" required />
-        </div>
-        <div class="field">
-          <label for="cad-cnpj">CNPJ</label>
-          <input type="text" id="cad-cnpj" placeholder="00.000.000/0000-00" required />
-        </div>
-        <div class="field">
-          <label for="cad-telefone">Telefone</label>
-          <input type="tel" id="cad-telefone" placeholder="(11) 99999-9999" required />
-        </div>
-        <div class="field">
-          <label for="cad-regiao">Região de atuação</label>
-          <input type="text" id="cad-regiao" placeholder="Ex.: Cidade Tiradentes" required />
-        </div>
-        <div class="field">
-          <label for="cad-descricao">Descrição</label>
-          <textarea id="cad-descricao" rows="4" placeholder="Descreva a ONG e seu trabalho..." required></textarea>
-        </div>
-        <p id="cadastro-error" class="form-error hidden"></p>
-        <button type="submit" class="btn btn-primary btn-block" id="cadastro-ong-submit">
-          Cadastrar ONG
+      <div class="login-main">
+        <button type="button" id="voltar-login-btn" class="btn btn-outline btn-block">
+          ← Voltar ao login
         </button>
-      </form>
-      <p id="cadastro-sucesso" class="login-hint hidden" style="color: #15803d;">
-        Solicitação enviada com sucesso! Aguarde a aprovação da administração.
-      </p>
+        <form id="cadastro-ong-form">
+          <div class="field">
+            <label for="cad-nome">Nome da ONG</label>
+            <input type="text" id="cad-nome" placeholder="Instituto Verde" required />
+          </div>
+          <div class="field">
+            <label for="cad-email">E-mail</label>
+            <input type="text" id="cad-email" placeholder="ong@email.com" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="cad-senha">Senha</label>
+            <input type="password" id="cad-senha" placeholder="Mínimo 6 caracteres" required />
+          </div>
+          <div class="field">
+            <label for="cad-cnpj">CNPJ</label>
+            <input type="text" id="cad-cnpj" placeholder="00.000.000/0000-00" required />
+          </div>
+          <div class="field">
+            <label for="cad-telefone">Telefone</label>
+            <input type="tel" id="cad-telefone" placeholder="(11) 99999-9999" required />
+          </div>
+          <div class="field">
+            <label for="cad-regiao">Região de atuação</label>
+            <input type="text" id="cad-regiao" placeholder="Ex.: Cidade Tiradentes" required />
+          </div>
+          <div class="field">
+            <label for="cad-descricao">Descrição</label>
+            <textarea id="cad-descricao" rows="4" placeholder="Descreva a ONG e seu trabalho..." required></textarea>
+          </div>
+          <p id="cadastro-error" class="form-error hidden"></p>
+          <button type="submit" class="btn btn-primary btn-block" id="cadastro-ong-submit">
+            Cadastrar ONG
+          </button>
+        </form>
+        <p id="cadastro-sucesso" class="login-hint hidden" style="color: #15803d;">
+          Solicitação enviada com sucesso! Aguarde a aprovação da administração.
+        </p>
+      </div>
     </div>
   </div>
 
@@ -91,21 +102,50 @@
   <div id="view-app" class="app-view hidden">
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <span class="brand-icon">+</span>
-        <span>+Verde</span>
+        <span class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+        </span>
+        <div class="brand-text">
+          <strong>+Verde</strong>
+          <small>Portal da ONG</small>
+        </div>
       </div>
+
       <nav class="sidebar-nav">
-        <button class="nav-link active" data-view="dashboard">Dashboard</button>
-        <button class="nav-link" data-view="usuarios">Meus dados</button>
-        <button class="nav-link" data-view="campanhas">Denúncias</button>
-        <button class="nav-link" data-view="projetos">Projetos</button>
+        <button class="nav-link active" data-view="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-link" data-view="usuarios">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Meus dados</span>
+        </button>
+        <button class="nav-link" data-view="campanhas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          <span>Denúncias</span>
+        </button>
+        <button class="nav-link" data-view="projetos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+          <span>Projetos</span>
+        </button>
       </nav>
-      <button id="logout-btn" class="btn btn-outline btn-block">Sair</button>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <span class="avatar" id="sidebar-avatar">OG</span>
+          <div class="sidebar-user-text">
+            <strong id="sidebar-user-name">ONG</strong>
+            <small>Conta da ONG</small>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn btn-outline btn-block">Sair</button>
+      </div>
     </aside>
 
     <main class="content">
       <header class="content-header">
         <div>
+          <p class="eyebrow">Visão geral</p>
           <h2 id="page-title">Dashboard</h2>
           <p id="page-subtitle" class="page-subtitle">
             Acompanhe denúncias, projetos e a comunidade da sua ONG.
@@ -275,54 +315,75 @@
       <!-- Meus dados -->
       <section id="view-usuarios" class="page">
         <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>E-mail</th>
-                <th>Perfil</th>
-              </tr>
-            </thead>
-            <tbody id="usuarios-tbody"></tbody>
-          </table>
+          <div class="table-toolbar">
+            <div>
+              <h4>Meus dados</h4>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Perfil</th>
+                </tr>
+              </thead>
+              <tbody id="usuarios-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       <!-- Denúncias -->
       <section id="view-campanhas" class="page">
         <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Título</th>
-                <th>Status</th>
-                <th>Área</th>
-                <th>Autor</th>
-                <th>Data</th>
-                <th>Descrição</th>
-              </tr>
-            </thead>
-            <tbody id="denuncias-tbody"></tbody>
-          </table>
+          <div class="table-toolbar">
+            <div>
+              <h4>Denúncias da ONG</h4>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Título</th>
+                  <th>Status</th>
+                  <th>Área</th>
+                  <th>Autor</th>
+                  <th>Data</th>
+                  <th>Descrição</th>
+                </tr>
+              </thead>
+              <tbody id="denuncias-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       <!-- Projetos -->
       <section id="view-projetos" class="page">
         <div class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>ID ONGs</th>
-                <th>Objetivo</th>
-                <th>Descrição</th>
-                <th>Percentual concluído</th>
-              </tr>
-            </thead>
-            <tbody id="projetos-tbody"></tbody>
-          </table>
+          <div class="table-toolbar">
+            <div>
+              <h4>Projetos da ONG</h4>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ID ONGs</th>
+                  <th>Objetivo</th>
+                  <th>Descrição</th>
+                  <th>Percentual concluído</th>
+                </tr>
+              </thead>
+              <tbody id="projetos-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
     </main>
