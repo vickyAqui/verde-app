@@ -72,7 +72,7 @@ const createDenuncia = async (req, res) => {
       titulo,
       dataDenuncia,
       statusDenuncia,
-      descricao,
+      descricao: descricao || null,
       fotos: fotosDenuncia.length > 0 ? fotosDenuncia : null,
     });
 

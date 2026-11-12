@@ -33,7 +33,7 @@ const Denuncia = sequelize.define('Denuncia', {
   },
   descricao: {
     type: DataTypes.STRING(100),
-    allowNull: false,
+    allowNull: true,
   },
   fotos: {
     type: DataTypes.JSON,

@@ -75,7 +75,7 @@ CREATE TABLE tbl_Denuncia (
   titulo VARCHAR(35) NOT NULL,
   dataDenuncia DATE NOT NULL,
   statusDenuncia VARCHAR(20) NOT NULL DEFAULT 'aberta',
-  descricao VARCHAR(100) NOT NULL,
+  descricao VARCHAR(100),
   fotos JSON,
 
   CONSTRAINT fk_denuncia_usuario
