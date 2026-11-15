@@ -1,4 +1,5 @@
-const API_URL = '/api';
+const API_URL = 'https://verde-app-backend.onrender.com/api';
+const API_URL_LOCAL = 'http://localhost:3333/api';
 
 function readStoredUser() {
   try {
@@ -123,7 +124,7 @@ async function api(path, options = {}, attempt = 0) {
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     if (res.status === 429) {
-      throw new Error('Muitas tentativas em pouco tempo. Aguarde alguns instantes e tente novamente.');
+      throw new Error(data.error || 'O servidor está temporariamente sobrecarregado. Aguarde e tente novamente.');
     }
     if (res.status >= 500) {
       throw new Error(data.error || 'O servidor está instável no momento. Tente novamente em instantes.');

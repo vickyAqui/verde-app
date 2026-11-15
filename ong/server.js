@@ -1,10 +1,8 @@
 const http = require('http');
-const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3001;
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3333';
 
 const ROOT = __dirname;
 const MIME = {
@@ -33,40 +31,11 @@ function serveStatic(req, res, urlPath) {
   });
 }
 
-function proxyApi(req, res, urlPath) {
-  const backend = new URL(urlPath, BACKEND_URL);
-  const transport = backend.protocol === 'https:' ? https : http;
-  const proxy = transport.request(
-    {
-      hostname: backend.hostname,
-      port: backend.port || undefined,
-      path: backend.pathname + backend.search,
-      method: req.method,
-      headers: { ...req.headers, host: backend.host },
-    },
-    (remote) => {
-      res.writeHead(remote.statusCode, remote.headers);
-      remote.pipe(res);
-    }
-  );
-  proxy.on('error', (err) => {
-    res.writeHead(502, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Backend indisponível: ' + err.message }));
-  });
-  req.pipe(proxy);
-}
-
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
-  const urlPath = url.pathname;
-
-  if (urlPath.startsWith('/api')) {
-    return proxyApi(req, res, urlPath + url.search);
-  }
-  return serveStatic(req, res, urlPath);
+  return serveStatic(req, res, url.pathname);
 });
 
 server.listen(PORT, () => {
   console.log(`[+Verde Ong] Painel rodando em http://localhost:${PORT}`);
-  console.log(`[+Verde Ong] API backend: ${BACKEND_URL}`);
 });
