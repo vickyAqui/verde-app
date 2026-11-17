@@ -1,9 +1,17 @@
 const API_URL = 'https://verde-app-backend.onrender.com/api';
 const API_URL_LOCAL = 'http://localhost:3333/api';
 
+function readStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem('verde_ong_user') || 'null');
+  } catch (err) {
+    return null;
+  }
+}
+
 const state = {
   token: localStorage.getItem('verde_ong_token') || null,
-  usuario: null,
+  usuario: readStoredUser(),
   view: 'dashboard',
 };
 
@@ -130,13 +138,25 @@ function showLogin() {
   state.token = null;
   state.usuario = null;
   localStorage.removeItem('verde_ong_token');
+  localStorage.removeItem('verde_ong_user');
   $('#view-app').classList.add('hidden');
   $('#view-login').classList.remove('hidden');
+  $('#view-cadastro-ong').classList.add('hidden');
+}
+
+function renderSidebarUser() {
+  const nome = state.usuario?.nome || 'ONG';
+  const avatar = $('#sidebar-avatar');
+  const nameEl = $('#sidebar-user-name');
+  if (avatar) avatar.textContent = initials(nome);
+  if (nameEl) nameEl.textContent = nome;
 }
 
 function showApp() {
   $('#view-login').classList.add('hidden');
+  $('#view-cadastro-ong').classList.add('hidden');
   $('#view-app').classList.remove('hidden');
+  renderSidebarUser();
   navigate('dashboard');
 }
 
@@ -167,6 +187,9 @@ async function handleLogin(e) {
     state.token = data.token;
     state.usuario = data.usuario || null;
     localStorage.setItem('verde_ong_token', data.token);
+    if (state.usuario) {
+      localStorage.setItem('verde_ong_user', JSON.stringify(state.usuario));
+    }
     showApp();
   } catch (err) {
     errorEl.textContent = err.message || 'Não foi possível entrar.';
@@ -193,19 +216,29 @@ function navigate(view) {
     el.classList.toggle('active', el.id === `view-${view}`);
   });
 
+  const eyebrows = {
+    dashboard: 'Visão geral',
+    usuarios: 'Minha conta',
+    campanhas: 'Acompanhamento',
+    projetos: 'Acompanhamento',
+    cadastro: 'Minha conta',
+  };
   const titles = {
     dashboard: 'Dashboard',
     usuarios: 'Meus dados',
     campanhas: 'Denúncias',
     projetos: 'Projetos',
+    cadastro: 'Cadastro de ONG',
   };
   const subtitles = {
     dashboard: 'Acompanhe denúncias, projetos e a comunidade da sua ONG.',
     usuarios: 'Sua conta e perfil no +Verde.',
     campanhas: 'Denúncias registradas pela sua ONG.',
     projetos: 'Projetos e percentual de conclusão.',
+    cadastro: 'Cadastre sua ONG para começar a usar o painel.',
   };
 
+  $('#page-eyebrow').textContent = eyebrows[view] || eyebrows.dashboard;
   $('#page-title').textContent = titles[view] || '';
   $('#page-subtitle').textContent = subtitles[view] || '';
 
@@ -235,16 +268,16 @@ function formatTelefone(value) {
 
 function statusKey(status) {
   const key = String(status || '').toLowerCase();
-  if (key.startsWith('aberta')) return 'aberta';
+  if (key.includes('aberta')) return 'aberta';
   if (key.includes('tratamento')) return 'tratamento';
-  if (key.startsWith('resolvid')) return 'resolvida';
+  if (key.includes('resolv')) return 'resolvida';
   return 'outros';
 }
 
 const DONUT_COLORS = {
-  aberta: '#DC2626',
+  aberta: '#B3402A',
   tratamento: '#2563EB',
-  resolvida: '#16A34A',
+  resolvida: '#166B44',
   outros: '#94A3B8',
 };
 
@@ -435,7 +468,7 @@ async function loadDashboard() {
 
   const aprovada = String(ong.statusOng || '').toLowerCase() === 'aprovada';
   statusEl.textContent = aprovada ? 'ONG aprovada' : 'ONG em análise';
-  statusEl.className = `badge ${aprovada ? 'badge-comum' : 'badge-identificada'}`;
+  statusEl.className = `badge ${aprovada ? 'badge-aprovada' : 'badge-pendente'}`;
 
   $('#stat-abertas').textContent = stats.denunciasAbertas;
   $('#stat-abertas-hint').textContent = `de ${stats.totalDenuncias} denúncia(s) no total`;
@@ -473,11 +506,13 @@ function badgePerfil(valor) {
 
 async function loadUsuarios() {
   const tbody = $('#usuarios-tbody');
+  const count = $('#usuarios-count');
   tbody.innerHTML = '<tr class="empty-row"><td colspan="3">Carregando...</td></tr>';
 
   try {
     const { usuario, tipo } = await api('/usuarios/profile');
 
+    count.textContent = 'Perfil conectado ao +Verde';
     tbody.innerHTML = `
       <tr>
         <td><div class="user-cell"><span class="avatar">${escapeHtml(initials(usuario.nome))}</span>${escapeHtml(usuario.nome)}</div></td>
@@ -486,6 +521,7 @@ async function loadUsuarios() {
       </tr>
     `;
   } catch (err) {
+    count.textContent = 'Não foi possível carregar';
     tbody.innerHTML = `<tr class="empty-row"><td colspan="3">${escapeHtml(err.message)}</td></tr>`;
   }
 }
@@ -493,12 +529,19 @@ async function loadUsuarios() {
 /* ---------- Denúncias ---------- */
 function badgeDenuncia(status) {
   const key = String(status || '').toLowerCase();
-  const cls = key === 'aberta' ? 'badge-aberta' : key.includes('tratamento') ? 'badge-tratamento' : 'badge-outros';
+  const cls = key === 'aberta'
+    ? 'badge-aberta'
+    : key.includes('tratamento')
+      ? 'badge-tratamento'
+      : key.includes('resolv')
+        ? 'badge-aprovada'
+        : 'badge-outros';
   return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
 }
 
 async function loadDenuncias() {
   const tbody = $('#denuncias-tbody');
+  const count = $('#denuncias-count');
   tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Carregando...</td></tr>';
 
   try {
@@ -507,6 +550,7 @@ async function loadDenuncias() {
     const denunciasDoUsuario = denuncias.filter(
       (d) => d.usuario?.idUsuario === state.usuario?.idUsuario
     );
+    count.textContent = `${denunciasDoUsuario.length} denúncia(s) da sua ONG`;
     if (!denunciasDoUsuario.length) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhuma denúncia encontrada.</td></tr>';
       return;
@@ -524,11 +568,12 @@ async function loadDenuncias() {
           <td>${d.usuario ? escapeHtml(d.usuario.nome) : '-'}</td>
           <td>${formatDate(d.dataDenuncia)}</td>
           <td>${renderDenunciaFotos(d.fotos)}</td>
-          <td>${escapeHtml(d.descricao)}</td>
+          <td><span class="cell-desc">${escapeHtml(d.descricao)}</span></td>
         </tr>
       `)
       .join('');
   } catch (err) {
+    count.textContent = 'Não foi possível carregar';
     tbody.innerHTML = `<tr class="empty-row"><td colspan="8">${escapeHtml(err.message)}</td></tr>`;
   }
 }
@@ -544,6 +589,7 @@ function badgeProjetoPercentual(pct) {
 
 async function loadProjetos() {
   const tbody = $('#projetos-tbody');
+  const count = $('#projetos-count');
   tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Carregando...</td></tr>';
 
   try {
@@ -560,6 +606,7 @@ async function loadProjetos() {
       ongIds.has(String(p.ong?.idOng))
     );
 
+    count.textContent = `${projetosDaOng.length} projeto(s) acompanhado(s)`;
     if (!projetosDaOng.length) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Nenhum projeto encontrado para esta ONG.</td></tr>';
       return;
@@ -571,12 +618,13 @@ async function loadProjetos() {
           <td>${p.idProjeto}</td>
           <td>${p.ong?.nome || '-'}</td>
           <td>${escapeHtml(p.objetivo)}</td>
-          <td>${escapeHtml(p.descricao)}</td>
+          <td><span class="cell-desc">${escapeHtml(p.descricao)}</span></td>
           <td>${badgeProjetoPercentual(p.percentualConclusao)}</td>
         </tr>
       `)
       .join('');
   } catch (err) {
+    count.textContent = 'Não foi possível carregar';
     tbody.innerHTML = `<tr class="empty-row"><td colspan="5">${escapeHtml(err.message)}</td></tr>`;
   }
 }
@@ -705,11 +753,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const { usuario, tipo } = await api('/usuarios/profile');
       state.usuario = usuario || null;
+      if (state.usuario) {
+        localStorage.setItem('verde_ong_user', JSON.stringify(state.usuario));
+      }
     } catch (err) {
       console.error('Erro ao recuperar sessão:', err);
       state.token = null;
       state.usuario = null;
       localStorage.removeItem('verde_ong_token');
+      localStorage.removeItem('verde_ong_user');
     }
   }
 
