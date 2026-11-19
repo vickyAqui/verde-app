@@ -76,9 +76,74 @@ module.exports = {
     ]
     await queryInterface.bulkInsert('tbl_Denuncia', denuncias);
 
+    const tiposConteudo = [
+      { idTipo_Conteudo: 1, tipo: 'artigo' },
+      { idTipo_Conteudo: 2, tipo: 'video' },
+    ];
+    await queryInterface.bulkInsert('tbl_Tipo_Conteudo', tiposConteudo);
+
+    const conteudos = [
+      {
+        idConteudo: 1,
+        idTipo_Conteudo: 1,
+        categoria: 'Dicas',
+        titulo: 'Passo a passo para plantar árvores frutíferas no chão.',
+        tempoLeitura: 14,
+        descricao: 'Aprenda como preparar o solo, abrir e adubar a cova, nivelar a muda corretamente e fazer a cobertura morta para plantar árvores frutíferas sem erros.',
+        link: null,
+      },
+      {
+        idConteudo: 2,
+        idTipo_Conteudo: 1,
+        categoria: 'Preservação',
+        titulo: 'Por que uma cidade precisa de árvores?',
+        tempoLeitura: 4,
+        descricao: 'Drauzio Varella explica a importância da arborização urbana para reduzir a poluição, gerar sombra e transformar a paisagem das cidades.',
+        link: null,
+      },
+      {
+        idConteudo: 3,
+        idTipo_Conteudo: 1,
+        categoria: 'Benefícios',
+        titulo: '7 benefícios das árvores',
+        tempoLeitura: 3,
+        descricao: 'A paisagista Lúcia Borges apresenta sete benefícios essenciais das árvores, incluindo melhora da qualidade do ar, redução de ruídos, conforto térmico e proteção do solo.',
+        link: null,
+      },
+      {
+        idConteudo: 4,
+        idTipo_Conteudo: 2,
+        categoria: null,
+        titulo: null,
+        tempoLeitura: null,
+        descricao: null,
+        link: 'https://www.youtube.com/watch?v=Oyrk7VAVjUY',
+      },
+      {
+        idConteudo: 5,
+        idTipo_Conteudo: 2,
+        categoria: null,
+        titulo: null,
+        tempoLeitura: null,
+        descricao: null,
+        link: 'https://www.youtube.com/watch?v=U2TLKecNdnU',
+      },
+      {
+        idConteudo: 6,
+        idTipo_Conteudo: 2,
+        categoria: null,
+        titulo: null,
+        tempoLeitura: null,
+        descricao: null,
+        link: 'https://www.youtube.com/watch?v=1PoNmDru9XM',
+      },
+    ];
+    await queryInterface.bulkInsert('tbl_Conteudo', conteudos);
   },
 
   async down(queryInterface) {
+    await queryInterface.bulkDelete('tbl_Conteudo', null, {});
+    await queryInterface.bulkDelete('tbl_Tipo_Conteudo', null, {});
     await queryInterface.bulkDelete('tbl_Denuncia', null, {});
     await queryInterface.bulkDelete('tbl_Area', null, {});
     await queryInterface.bulkDelete('tbl_Usuario', null, {});

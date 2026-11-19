@@ -7,6 +7,12 @@ const {
   listDenuncias,
   updateDenunciaStatus,
 } = require('../controllers/admin.controller');
+const {
+  listConteudos,
+  createConteudo,
+  updateConteudo,
+  deleteConteudo,
+} = require('../controllers/conteudo.controller');
 
 const router = express.Router();
 
@@ -17,5 +23,9 @@ router.get('/usuarios', listUsuarios);
 router.get('/areas', listAreas);
 router.get('/denuncias', listDenuncias);
 router.put('/denuncia/:id/status', updateDenunciaStatus);
+router.get('/conteudos', listConteudos);
+router.post('/conteudos', createConteudo);
+router.put('/conteudos/:id', updateConteudo);
+router.delete('/conteudos/:id', deleteConteudo);
 
 module.exports = router;

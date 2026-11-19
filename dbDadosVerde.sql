@@ -56,3 +56,22 @@ CREATE TABLE tbl_Denuncia (
   CONSTRAINT chk_status_denuncia
     CHECK (statusDenuncia IN ('aberta', 'em tratamento', 'resolvida'))
 );
+
+CREATE TABLE tbl_Tipo_Conteudo (
+  idTipo_Conteudo INT PRIMARY KEY AUTO_INCREMENT,
+  tipo VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE tbl_Conteudo (
+  idConteudo INT PRIMARY KEY AUTO_INCREMENT,
+  idTipo_Conteudo INT NOT NULL,
+  categoria VARCHAR(50),
+  titulo VARCHAR(100),
+  tempoLeitura INT,
+  descricao VARCHAR(255),
+  link VARCHAR(255),
+
+  CONSTRAINT fk_conteudo_tipo
+    FOREIGN KEY (idTipo_Conteudo)
+    REFERENCES tbl_Tipo_Conteudo(idTipo_Conteudo)
+);
