@@ -47,7 +47,7 @@ const DEN_FILTERS = [
   { key: 'all', label: 'Todas' },
   { key: 'aberta', label: 'Abertas' },
   { key: 'em tratamento', label: 'Em tratamento' },
-  { key: 'resolvido', label: 'Resolvidas' },
+  { key: 'resolvida', label: 'Resolvidas' },
 ];
 
 const DEN_COLOR = '#C9731D';
@@ -121,9 +121,7 @@ export default function MapScreen({ navigation }) {
     }
 
     return denList
-      .filter((d) =>
-        filter === 'all' ? true : d.statusDenuncia === filter,
-      )
+      .filter((d) => (filter === 'all' ? true : d.statusDenuncia === filter))
       .filter(
         (d) =>
           !q ||

@@ -25,7 +25,7 @@ const AREA_STATUS: Record<string, { label: string; join: string }> = {
 const DEN_STATUS: Record<string, { label: string; join: string }> = {
   aberta: { label: "Aberta", join: "badge-error" },
   "em tratamento": { label: "Em tratamento", join: "badge-warning" },
-  resolvido: { label: "Resolvida", join: "badge-success" },
+  resolvida: { label: "Resolvida", join: "badge-success" },
 };
 
 const DEFAULT_RAIO: Record<string, number> = {
@@ -47,7 +47,7 @@ const DEN_FILTERS = [
   { key: "all", label: "Todas" },
   { key: "aberta", label: "Abertas" },
   { key: "em tratamento", label: "Em tratamento" },
-  { key: "resolvido", label: "Resolvidas" },
+  { key: "resolvida", label: "Resolvidas" },
 ] as const;
 
 type LatLng = [number, number];
@@ -222,7 +222,11 @@ export function MapScreen() {
     }
     const f = filter || "all";
     return denList
-      .filter((d) => (f === "all" ? true : d.statusDenuncia === f))
+      .filter((d) =>
+        f === "all"
+          ? true
+          : d.statusDenuncia === f,
+      )
       .filter(
         (d) =>
           !q ||
@@ -572,7 +576,7 @@ export function MapScreen() {
                           </p>
                           {r.kind === "area" && r.status === "identificada" && (
                             <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                              Esta área ainda não tem árvores. Sua denúncia ajuda a ONG a priorizar o local.
+                              Esta área ainda não tem árvores. Sua denúncia ajuda a comunidade a priorizar o local.
                             </p>
                           )}
                           <button

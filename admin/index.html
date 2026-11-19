@@ -71,10 +71,6 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
           <span>Áreas</span>
         </button>
-        <button class="nav-link" data-view="ongs">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
-          <span>ONGs</span>
-        </button>
         <button class="nav-link" data-view="denuncias">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
           <span>Denúncias</span>
@@ -119,28 +115,6 @@
               <p class="kpi-label">Usuários</p>
               <p class="kpi-value" id="stat-usuarios">-</p>
               <p class="kpi-hint" id="stat-usuarios-hint">na plataforma</p>
-            </div>
-          </article>
-
-          <article class="kpi-card kpi-gold">
-            <span class="kpi-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
-            </span>
-            <div class="kpi-body">
-              <p class="kpi-label">ONGs</p>
-              <p class="kpi-value" id="stat-ongs">-</p>
-              <p class="kpi-hint" id="stat-ongs-hint">parceiras cadastradas</p>
-            </div>
-          </article>
-
-          <article class="kpi-card kpi-blue">
-            <span class="kpi-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
-            </span>
-            <div class="kpi-body">
-              <p class="kpi-label">Projetos</p>
-              <p class="kpi-value" id="stat-projetos">-</p>
-              <p class="kpi-hint" id="stat-projetos-hint">em andamento</p>
             </div>
           </article>
 
@@ -199,20 +173,6 @@
             </div>
             <ul id="dash-donut-legend" class="legend"></ul>
           </article>
-
-          <article class="panel">
-            <header class="panel-head">
-              <div>
-                <h4>Solicitações de ONG</h4>
-                <p class="panel-sub" id="dash-pendentes-resumo">Carregando...</p>
-              </div>
-              <button type="button" class="link-btn" data-view="ongs">Ver todas</button>
-            </header>
-            <div id="dash-pendentes" class="pending-list"></div>
-          </article>
-        </div>
-
-        <div class="dash-grid">
           <article class="panel">
             <header class="panel-head">
               <div>
@@ -223,7 +183,9 @@
             </header>
             <div id="dash-ultimas" class="recent-list"></div>
           </article>
+        </div>
 
+        <div class="dash-grid dash-grid-full">
           <article class="panel">
             <header class="panel-head">
               <div>
@@ -233,13 +195,6 @@
             </header>
 
             <div class="quick-actions">
-              <button type="button" class="quick-action" data-view="ongs">
-                <span class="quick-icon quick-icon-gold">+</span>
-                <span class="quick-text">
-                  <strong>Aprovar ONGs</strong>
-                  <small>Analise novas solicitações</small>
-                </span>
-              </button>
               <button type="button" class="quick-action" data-view="denuncias">
                 <span class="quick-icon quick-icon-red">!</span>
                 <span class="quick-text">
@@ -315,34 +270,6 @@
         </div>
       </section>
 
-      <!-- ONGs -->
-      <section id="view-ongs" class="page">
-        <div class="table-card">
-          <div class="table-toolbar">
-            <div>
-              <h4>ONGs da rede</h4>
-              <p class="panel-sub" id="ongs-count">Carregando...</p>
-            </div>
-          </div>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>ONG</th>
-                  <th>Região</th>
-                  <th>CNPJ</th>
-                  <th>Telefone</th>
-                  <th>Responsável</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="ongs-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
 
       <!-- Denúncias -->
       <section id="view-denuncias" class="page">

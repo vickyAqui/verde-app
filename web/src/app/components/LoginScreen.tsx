@@ -45,7 +45,7 @@ export function LoginScreen() {
               mais verde<span className="text-[#A7D7B8]">.</span>
             </h1>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/65">
-              Mapeie áreas sem arborização, denuncie e conecte-se com ONGs que reforestam a zona
+              Mapeie áreas sem arborização e acompanhe ações de recuperação
               leste de São Paulo.
             </p>
           </div>
@@ -113,7 +113,7 @@ export function LoginScreen() {
             <p className="mt-6 text-center text-xs leading-relaxed text-muted-foreground">
               Rede comunitária de arborização urbana de{" "}
               <span className="text-foreground">Cidade Tiradentes</span> — concebida em parceria com
-              ONGs e moradores da região.
+              moradores da região.
             </p>
           </div>
         </div>

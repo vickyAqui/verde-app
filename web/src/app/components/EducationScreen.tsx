@@ -19,7 +19,7 @@ const articles = [
     color: "text-success bg-success/10",
     readTime: "3 min",
     title: "Como denunciar o corte ilegal em São Paulo",
-    full: "Use o +Verde para registrar ocorrências diretamente com as ONGs parceiras. Você também pode acionar o canal 156 da Prefeitura de SP para crimes ambientais urbanos. Guarde fotos com data e localização.",
+    full: "Use o +Verde para registrar ocorrências ambientais. Você também pode acionar o canal 156 da Prefeitura de SP para crimes ambientais urbanos. Guarde fotos com data e localização.",
   },
   {
     id: 3,
@@ -83,8 +83,7 @@ export function EducationScreen() {
           <div className="mt-6 rounded-2xl border border-primary/15 bg-primary/[0.07] p-4">
             <p className="text-sm font-semibold text-primary">Você pode ajudar</p>
             <p className="mt-1 text-[13px] leading-relaxed text-foreground/75">
-              Participe dos mutirões de plantio das ONGs parceiras na aba{" "}
-              <strong>ONGs e Projetos</strong>.
+              Acompanhe as áreas cadastradas no aplicativo.
             </p>
           </div>
         </div>

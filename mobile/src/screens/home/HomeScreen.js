@@ -99,7 +99,7 @@ export default function HomeScreen({ navigation }) {
   const errored = areas.error || denuncias.error || ongs.error || projetos.error;
 
   const deficit = areaList.filter((a) => a.statusArea !== 'reflorestada').length;
-  const abertas = denList.filter((d) => d.statusDenuncia !== 'resolvido');
+  const abertas = denList.filter((d) => d.statusDenuncia !== 'resolvida');
   const firstName = user?.nome?.split(/\s+/)[0] ?? '';
 
   const reloadAll = useCallback(() => {

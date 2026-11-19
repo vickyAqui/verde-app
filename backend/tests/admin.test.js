@@ -1,50 +1,17 @@
 const { app, request, getToken } = require('./helpers/http');
-const { Ong, Usuario } = require('../src/models')
+const { Denuncia } = require('../src/models');
 describe('Admin', () => {
   let adminToken;
-  const testEmails = [];
-  const testOngIds = [];
 
   beforeAll(async () => {
     adminToken = await getToken('admin@verde.com', '123456');
   });
   afterAll(async () => {
-    for (const idOng of testOngIds) {
-      await Ong.destroy({ where: { idOng } });
-    }
-    for (const email of testEmails) {
-      await Usuario.destroy({ where: { email } });
-    }
+    await Denuncia.update(
+      { statusDenuncia: 'aberta' },
+      { where: { idDenuncia: 1 } },
+    );
   });
-  async function createPendingOng(email, cnpj) {
-    const registration = await request(app).post('/api/auth/register').send({
-      nome: 'Usuário de teste ONG',
-      email,
-      senha: '123456',
-      cpf: null,
-      dataNasc: null,
-    });
-
-    expect(registration.status).toBe(201);
-    testEmails.push(email);
-
-    const response = await request(app)
-      .post('/api/ongs')
-      .set('Authorization', `Bearer ${registration.body.token}`)
-      .send({
-        nome: 'ONG de teste administrativo',
-        regiao: 'Cidade Tiradentes',
-        cnpj,
-        telefone: '11988887777',
-        descricao: 'ONG para teste administrativo',
-      });
-
-    expect(response.status).toBe(201);
-    testOngIds.push(response.body.ong.idOng);
-
-    return { idOng: response.body.ong.idOng, token: registration.body.token };
-  }
-
   describe('Acesso', () => {
     it('rejeita acesso sem token (401)', async () => {
       const res = await request(app).get('/api/admin/dashboard');
@@ -80,8 +47,6 @@ describe('Admin', () => {
       expect(stats.totalAdmins).toBeGreaterThanOrEqual(1);
       expect(stats.totalComuns).toBeGreaterThanOrEqual(1);
       expect(stats.totalAreas).toBeGreaterThanOrEqual(1);
-      expect(stats.totalONGs).toBeGreaterThanOrEqual(1);
-      expect(stats.totalProjetos).toBeGreaterThanOrEqual(1);
       expect(stats.totalDenuncias).toBeGreaterThanOrEqual(1);
       expect(stats.denunciasAbertas).toBeGreaterThanOrEqual(0);
     });
@@ -115,32 +80,24 @@ describe('Admin', () => {
     });
   });
 
-  describe('GET /api/admin/ongs', () => {
-    it('lista todas as ONGs', async () => {
+  describe('PUT /api/admin/denuncia/:id/status', () => {
+    it('permite ao admin alterar o status da denúncia', async () => {
       const res = await request(app)
-        .get('/api/admin/ongs')
-        .set('Authorization', `Bearer ${adminToken}`);
+        .put('/api/admin/denuncia/1/status')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ statusDenuncia: 'em tratamento' });
 
       expect(res.status).toBe(200);
-      expect(Array.isArray(res.body.ongs)).toBe(true);
-      expect(res.body.ongs.length).toBeGreaterThan(0);
+      expect(res.body.denuncia.statusDenuncia).toBe('em tratamento');
     });
-  });
 
-  describe('GET /api/admin/projetos', () => {
-    it('lista todos os projetos com os dados da ONG', async () => {
+    it('rejeita um status inválido', async () => {
       const res = await request(app)
-        .get('/api/admin/projetos')
-        .set('Authorization', `Bearer ${adminToken}`);
+        .put('/api/admin/denuncia/1/status')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ statusDenuncia: 'cancelada' });
 
-      expect(res.status).toBe(200);
-      expect(Array.isArray(res.body.projetos)).toBe(true);
-      expect(res.body.projetos.length).toBeGreaterThan(0);
-
-      res.body.projetos.forEach((projeto) => {
-        expect(projeto).toHaveProperty('idProjeto');
-        expect(projeto).toHaveProperty('ong');
-      });
+      expect(res.status).toBe(400);
     });
   });
 
@@ -155,37 +112,4 @@ describe('Admin', () => {
     });
   });
 
-  describe('PUT /api/admin/ong/:id/approve', () => {
-    it('aprova uma ONG pendente', async () => {
-      const email = `admin-aprova-${Date.now()}@verde.com`;
-      const pending = await createPendingOng(email, '80923561000100');
-
-      const res = await request(app)
-        .put(`/api/admin/ong/${pending.idOng}/approve`)
-        .set('Authorization', `Bearer ${adminToken}`);
-
-      expect(res.status).toBe(200);
-      expect(res.body.ong.statusOng).toBe('aprovada');
-    });
-  });
-
-  describe('DELETE /api/admin/ong/:id/approve', () => {
-    it('rejeita e remove uma ONG pendente', async () => {
-      const email = `admin-rejeita-${Date.now()}@verde.com`;
-      const pending = await createPendingOng(email, '36218179000103');
-
-      const res = await request(app)
-        .delete(`/api/admin/ong/${pending.idOng}/approve`)
-        .set('Authorization', `Bearer ${adminToken}`);
-
-      expect(res.status).toBe(200);
-      expect(res.body.message).toBe('ONG rejeitada e deletada com sucesso');
-
-      const lookup = await request(app)
-        .get(`/api/ongs/${pending.idOng}`)
-        .set('Authorization', `Bearer ${pending.token}`);
-
-      expect(lookup.status).toBe(404);
-    });
-  });
 });

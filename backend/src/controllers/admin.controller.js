@@ -1,14 +1,11 @@
-const { Usuario, Area, Ong, Projeto, Denuncia, Nivel_Usuario } = require('../models');
-const sequelize = require('../config/sequelize');
+const { Usuario, Area, Denuncia, Nivel_Usuario } = require('../models');
 
 const dashboardStats = async (req, res) => {
   try {
     const totalUsuarios = await Usuario.count();
-    const totalAdmins = await Usuario.count({ where: {idNivel_Usuario: 3} });
+    const totalAdmins = await Usuario.count({ where: {idNivel_Usuario: 2} });
     const totalComuns = await Usuario.count({ where: {idNivel_Usuario: 1} });
     const totalAreas = await Area.count();
-    const totalONGs = await Ong.count();
-    const totalProjetos = await Projeto.count();
     const totalDenuncias = await Denuncia.count();
     const denunciasAbertas = await Denuncia.count({ where: { statusDenuncia: 'aberta' } });
 
@@ -18,8 +15,6 @@ const dashboardStats = async (req, res) => {
         totalAdmins,
         totalComuns,
         totalAreas,
-        totalONGs,
-        totalProjetos,
         totalDenuncias,
         denunciasAbertas,
       },
@@ -50,17 +45,6 @@ const listAreas = async (req, res) => {
   }
 };
 
-const listONGs = async (req, res) => {
-  try {
-    const ongs = await Ong.findAll({
-      include: [{ model: Usuario, as: 'usuario', attributes: ['idUsuario', 'nome', 'email'] }],
-    });
-    return res.json({ ongs });
-  } catch (err) {
-    return res.status(500).json({ error: 'Erro ao listar ONGs' });
-  }
-};
-
 const listDenuncias = async (req, res) => {
   try {
     const denuncias = await Denuncia.findAll({
@@ -76,62 +60,33 @@ const listDenuncias = async (req, res) => {
   }
 };
 
-const listProjetos = async (req, res) => {
-  try{ 
-    const projetos = await Projeto.findAll({
-      include: [{ model: Ong, as: 'ong', attributes: ['idOng', 'nome', 'regiao'] }],
-      order: [['idProjeto', 'DESC']],
-    });
-    return res.json({projetos})
-  } catch (err) {
-    return res.status(500).json({ error: 'Erro ao listar projetos' });
-  }
-}
-
-const approveONG = async (req, res) => {
-  const t = await sequelize.transaction();
-
+const updateDenunciaStatus = async (req, res) => {
   try {
-    const ong = await Ong.findByPk(req.params.id, { transaction: t });
-    if (!ong) {
-      await t.rollback();
-      return res.status(404).json({ error: 'ONG não encontrada' });
-    }
+    const allowedStatuses = ['aberta', 'em tratamento', 'resolvida'];
+    const { statusDenuncia } = req.body;
 
-    await ong.update({ statusOng: 'aprovada' }, { transaction: t });
-    await Usuario.update(
-      { idNivel_Usuario: 2 },
-      { where: { idUsuario: ong.idUsuario }, transaction: t }
-    );
-
-    await t.commit();
-
-    return res.json({ ong });
-  } catch (err) {
-    await t.rollback();
-    
-    return res.status(500).json({ error: 'Erro ao aprovar ONG' });
-  }
-};
-
-const rejectONG = async (req, res) => {
-  try {
-    const ong = await Ong.findByPk(req.params.id);
-    if (!ong) return res.status(404).json({ error: 'ONG não encontrada' });
-
-    if (ong.statusOng !== 'pendente') {
-      return res.status(409).json({
-        error: 'Apenas solicitações pendentes podem ser reprovadas.',
+    if (!allowedStatuses.includes(statusDenuncia)) {
+      return res.status(400).json({
+        error: 'Status inválido. Use: aberta, em tratamento ou resolvida.',
       });
     }
 
-    await Ong.destroy({where: {idOng: req.params.id}})
+    const denuncia = await Denuncia.findByPk(req.params.id);
+    if (!denuncia) {
+      return res.status(404).json({ error: 'Denúncia não encontrada' });
+    }
 
-    return res.json({ message: "ONG rejeitada e deletada com sucesso" });
+    await denuncia.update({ statusDenuncia });
+    return res.json({ denuncia });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Erro ao reprovar ONG' });
+    return res.status(500).json({ error: 'Erro ao atualizar status da denúncia' });
   }
 };
 
-module.exports = { dashboardStats, listUsuarios, listAreas, listONGs, listDenuncias, listProjetos, approveONG, rejectONG };
+module.exports = {
+  dashboardStats,
+  listUsuarios,
+  listAreas,
+  listDenuncias,
+  updateDenunciaStatus,
+};

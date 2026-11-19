@@ -17,7 +17,7 @@ module.exports = {
     await queryInterface.sequelize.query(`
       ALTER TABLE tbl_Nivel_Usuario
       ADD CONSTRAINT chk_nivel_usuario
-      CHECK (descricao IN ('comum', 'admin', 'ong'))
+      CHECK (descricao IN ('comum', 'admin'))
     `);
   },
 

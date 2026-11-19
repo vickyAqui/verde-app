@@ -1,6 +1,6 @@
 import { useNavigate, Link } from "react-router";
-import { AlertTriangle, ArrowRight, BookOpen, Leaf, MapPin, Sprout, TreePine, Users } from "lucide-react";
-import { api, type Area, type Denuncia, type Ong, type Projeto } from "../../lib/api";
+import { AlertTriangle, ArrowRight, BookOpen, Leaf, MapPin, TreePine } from "lucide-react";
+import { api, type Area, type Denuncia } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useFetch } from "../../lib/use-fetch";
 import { Card, DataError, Eyebrow, Loading, num } from "./ui";
@@ -8,7 +8,7 @@ import { Card, DataError, Eyebrow, Loading, num } from "./ui";
 const statusDot: Record<string, string> = {
   aberta: "bg-error",
   "em tratamento": "bg-warning",
-  resolvido: "bg-success",
+  resolvida: "bg-success",
 };
 
 function CoverageMiniMap() {
@@ -49,27 +49,21 @@ export function HomeScreen() {
 
   const areas = useFetch<Area[]>(() => api.get("/areas").then((r) => r.areas));
   const denuncias = useFetch<Denuncia[]>(() => api.get("/denuncias").then((r) => r.denuncias));
-  const ongs = useFetch<Ong[]>(() => api.get("/ongs").then((r) => r.ongs));
-  const projetos = useFetch<Projeto[]>(() => api.get("/projetos").then((r) => r.projetos));
 
-  const loading = areas.loading || denuncias.loading || ongs.loading || projetos.loading;
-  const errored = areas.error || denuncias.error || ongs.error || projetos.error;
+  const loading = areas.loading || denuncias.loading;
+  const errored = areas.error || denuncias.error;
 
   const areaList = areas.data ?? [];
   const denList = denuncias.data ?? [];
-  const ongList = ongs.data ?? [];
-  const projList = projetos.data ?? [];
 
   const deficit = areaList.filter((a) => a.statusArea !== "reflorestada").length;
-  const abertas = denList.filter((d) => d.statusDenuncia !== "resolvido");
+  const abertas = denList.filter((d) => d.statusDenuncia !== "resolvida");
 
   const firstName = user?.nome?.split(/\s+/)[0] ?? "";
 
   const reloadAll = () => {
     areas.reload();
     denuncias.reload();
-    ongs.reload();
-    projetos.reload();
   };
 
   return (
@@ -105,8 +99,7 @@ export function HomeScreen() {
                 Encontrou uma área sem árvores?
               </h2>
               <p className="mt-1.5 text-[13px] leading-relaxed text-white/70">
-                Registre em menos de um minuto. As ONGs parceiras recebem sua denúncia e agem no
-                local.
+                Registre em menos de um minuto para acompanhar a situação da área.
               </p>
               <button
                 onClick={() => navigate("/denunciar")}
@@ -118,11 +111,9 @@ export function HomeScreen() {
             </Card>
 
             {/* ── Números ── */}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <MiniStat Icon={TreePine} label="Áreas" value={num(areaList.length)} />
               <MiniStat Icon={AlertTriangle} label="Abertas" value={num(abertas.length)} />
-              <MiniStat Icon={Users} label="ONGs" value={num(ongList.length)} />
-              <MiniStat Icon={Sprout} label="Projetos" value={num(projList.length)} />
             </div>
 
             {/* ── Mapa (preview) ── */}

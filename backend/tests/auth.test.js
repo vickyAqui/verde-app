@@ -14,16 +14,6 @@ describe('Auth', () => {
       expect(res.body.usuario.email).toBe('admin@verde.com');
       expect(res.body.usuario.senha).toBeUndefined();
     });
-    it('loga com usuário de ONG e retorna tipo ong', async () => {
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({ email: 'maria@verde.com', senha: '123456' });
-
-      expect(res.status).toBe(200);
-      expect(res.body.tipo).toBe('ong');
-      expect(res.body.usuario.email).toBe('maria@verde.com');
-    });
-
     it('loga com usuário comum e retorna tipo comum', async () => {
       const res = await request(app)
         .post('/api/auth/login')

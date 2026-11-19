@@ -3,19 +3,16 @@ import { useNavigate } from "react-router";
 import {
   AlertTriangle,
   BookOpen,
-  ChevronRight,
   Image,
   Info,
   Lock,
   LogOut,
   MapPin,
   Shield,
-  Sprout,
-  Users,
 } from "lucide-react";
-import { ApiError, api, getDenunciaFotos, type Area, type Denuncia, type Ong, type Projeto } from "../../lib/api";
+import { api, getDenunciaFotos, type Area, type Denuncia } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
-import { ADMIN_PANEL_URL, ONG_PANEL_URL } from "../../lib/panels";
+import { ADMIN_PANEL_URL } from "../../lib/panels";
 import { useFetch } from "../../lib/use-fetch";
 import { Card, DataError, EmptyState, initials, Loading, num, StatusBadge } from "./ui";
 import { DenunciaImageDialog } from "./DenunciaImageDialog";
@@ -23,7 +20,7 @@ import { DenunciaImageDialog } from "./DenunciaImageDialog";
 const DEN_STATUS = {
   aberta: { label: "Aberta", join: "badge-error" },
   "em tratamento": { label: "Em tratamento", join: "badge-warning" },
-  resolvido: { label: "Resolvida", join: "badge-success" },
+  resolvida: { label: "Resolvida", join: "badge-success" },
 };
 
 export function ProfileScreen() {
@@ -33,17 +30,6 @@ export function ProfileScreen() {
 
   const denuncias = useFetch<Denuncia[]>(() => api.get("/denuncias").then((r) => r.denuncias));
   const areas = useFetch<Area[]>(() => api.get("/areas").then((r) => r.areas));
-  const projetos = useFetch<Projeto[]>(() => api.get("/projetos").then((r) => r.projetos));
-
-  const myOng = useFetch<Ong | null>(() =>
-    api
-      .get<{ ong: Ong }>("/ongs/me")
-      .then((r) => r.ong)
-      .catch((err) => {
-        if (err instanceof ApiError && err.status === 404) return null;
-        throw err;
-      }),
-  );
 
   const mine = useMemo(
     () => (denuncias.data ?? []).filter((d) => d.usuario?.idUsuario === user?.idUsuario),
@@ -55,7 +41,6 @@ export function ProfileScreen() {
   const stats = [
     { label: "Minhas denúncias", value: num(mine.length) },
     { label: "Áreas mapeadas", value: num(areas.data?.length) },
-    { label: "Projetos", value: num(projetos.data?.length) },
   ];
 
   return (
@@ -88,7 +73,7 @@ export function ProfileScreen() {
           <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-base-200 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
             <MapPin size={11} className="text-primary" /> Cidade Tiradentes · zona leste
           </p>
-          <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="mt-4 grid grid-cols-2 gap-2">
             {stats.map((s) => (
               <div key={s.label} className="rounded-xl bg-base-200/60 px-2 py-2.5 text-center">
                 <p className="font-display text-xl font-semibold text-foreground">{s.value}</p>
@@ -143,55 +128,6 @@ export function ProfileScreen() {
           </div>
         )}
       </div>
-      {myOng.data ? (
-        <div className="px-5 pt-5">
-          <button
-            onClick={() => window.location.assign(ONG_PANEL_URL)}
-            className="flex w-full items-center gap-3 rounded-2xl border border-primary/20 bg-primary/[0.08] px-4 py-3.5 text-left transition-colors hover:bg-primary/[0.14]"
-          >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-content">
-              <Sprout size={18} strokeWidth={2} />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground">
-                Painel da ONG
-              </p>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                {myOng.data.nome} ·{" "}
-                {myOng.data.statusOng === "aprovada"
-                  ? "aprovada"
-                  : "em análise"}
-              </p>
-            </div>
-
-            <ChevronRight size={18} className="text-primary" />
-          </button>
-        </div>
-      ) : tipo === "comum" && !myOng.loading && !myOng.error ? (
-        <div className="px-5 pt-5">
-          <button
-            onClick={() => navigate("/ongs/create")}
-            className="flex w-full items-center gap-3 rounded-2xl border border-primary/20 bg-primary/[0.08] px-4 py-3.5 text-left transition-colors hover:bg-primary/[0.14]"
-          >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-content">
-              <Users size={18} strokeWidth={2} />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground">
-                Cadastrar sua ONG
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Envie sua organização para análise
-              </p>
-            </div>
-
-            <ChevronRight size={18} className="text-primary" />
-          </button>
-        </div>
-      ) : null}
-
       {/* Configure */}
       <div className="px-5 pt-5">
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">

@@ -16,7 +16,7 @@ import {
   type Usuario,
 } from "./api";
 
-type Tipo = "admin" | "comum" | "ong";
+type Tipo = "admin" | "comum";
 
 type AuthContextValue = {
   user: Usuario | null;

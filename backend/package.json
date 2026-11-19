@@ -1,7 +1,7 @@
 {
   "name": "+verde-backend",
   "version": "1.0.0",
-  "description": "Backend API do app +Verde - Mapeamento de áreas não verdes e conexão com ONGs de reflorestamento",
+  "description": "Backend API do app +Verde - Mapeamento de áreas não verdes",
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",

@@ -12,7 +12,7 @@ const Nivel_Usuario = sequelize.define('Nivel_Usuario', {
     type: DataTypes.STRING(30),
     allowNull: false,
     validate: {
-      isIn: [['comum', 'admin', 'ong']],
+      isIn: [['comum', 'admin']],
     },
   },
 }, {

@@ -8,18 +8,16 @@ import {
   useLocation,
   useNavigate,
 } from "react-router";
-import { AlertTriangle, Home, Leaf, Map, UserRound, Users } from "lucide-react";
+import { AlertTriangle, Home, Leaf, Map, UserRound, BookOpen } from "lucide-react";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { HomeScreen } from "./components/HomeScreen";
 import { MapScreen } from "./components/MapScreen";
 import { ReportsScreen } from "./components/ReportsScreen";
-import { OngsScreen } from "./components/OngsScreen";
-import { OngsCreateScreen } from "./components/OngsCreateScreen"
 import { EducationScreen } from "./components/EducationScreen";
 import { ProfileScreen } from "./components/ProfileScreen";
 import { LoginScreen } from "./components/LoginScreen";
 import { RegisterScreen } from "./components/RegisterScreen";
-import { ADMIN_PANEL_URL, ONG_PANEL_URL } from "../lib/panels";
+import { ADMIN_PANEL_URL } from "../lib/panels";
 
 function Splash() {
   return (
@@ -113,9 +111,9 @@ function AppShell() {
                 Denunciar
               </span>
             </button>
-
-            <TabButton label="ONGs" active={tab(["/ongs"])} onClick={() => go("/ongs")}>
-              <Users size={22} strokeWidth={tab(["/ongs"]) ? 2.4 : 1.8} />
+            
+            <TabButton label="Informações" active={tab(["/educacao"])} onClick={() => go("/educacao")}>
+              <BookOpen size={22} strokeWidth={tab(["/educacao"]) ? 2.4 : 1.8} />
             </TabButton>
 
             <TabButton label="Perfil" active={tab(["/perfil"])} onClick={() => go("/perfil")}>
@@ -186,17 +184,14 @@ export default function App() {
 
           {/* Os painéis ficam em sites separados do app (requisito do projeto). */}
           <Route path="/admin" element={<ExternalRedirect to={ADMIN_PANEL_URL} />} />
-          <Route path="/painel-ong" element={<ExternalRedirect to={ONG_PANEL_URL} />} />
 
           <Route element={<RequireAuth />}>
             <Route element={<AppShell />}>
               <Route path="/" element={<HomeScreen />} />
               <Route path="/mapa" element={<MapScreen />} />
               <Route path="/denunciar" element={<ReportsScreen />} />
-              <Route path="/ongs" element={<OngsScreen />} />
               <Route path="/educacao" element={<EducationScreen />} />
               <Route path="/perfil" element={<ProfileScreen />} />
-              <Route path="/ongs/create" element={<OngsCreateScreen />} />
             </Route>
           </Route>
 

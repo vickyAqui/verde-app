@@ -36,50 +36,9 @@ export function getDenunciaFotos(denuncia: Pick<Denuncia, "fotos">): string[] {
   return denuncia.fotos?.filter((url) => typeof url === "string" && url.trim().length > 0) ?? [];
 }
 
-export type Ong = {
-  idOng: number;
-  idUsuario: number;
-  nome: string;
-  regiao: string;
-  cnpj: string;
-  telefone: string;
-  descricao: string;
-  statusOng: string;
-  usuario?: Pick<Usuario, "idUsuario" | "nome" | "email">;
-};
-
-export type Projeto = {
-  idProjeto: number;
-  idUsuario: number;
-  objetivo: string;
-  descricao: string;
-  percentualConclusao: number;
-  ong?: Pick<Ong, "idOng" | "nome" | "regiao">
-};
-
-export type OngMembro = {
-  idOng_Usuario: number;
-  idOng: number;
-  idUsuario: number;
-  usuario?: Pick<Usuario, "idUsuario" | "nome" | "email">;
-};
-
-export type OngDashboard = {
-  ong: Ong;
-  stats: {
-    totalProjetos: number;
-    totalMembros: number;
-    totalDenuncias: number;
-    denunciasAbertas: number;
-    percentualMedio: number;
-  };
-  projetos: Projeto[];
-  membros: OngMembro[];
-  denuncias: Denuncia[];
-};
-
-const API_BASE = "https://verde-app-backend.onrender.com/api"
 const API_BASE_LOCAL = "http://localhost:3333/api"
+const API_BASE = "https://verde-app-backend.onrender.com/api"
+
 const TOKEN_KEY = "@verde:token";
 const USER_KEY = "@verde:user";
 
@@ -91,7 +50,7 @@ export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
-type StoredUser = { usuario: Usuario; tipo: "admin" | "comum" | "ong" };
+type StoredUser = { usuario: Usuario; tipo: "admin" | "comum" };
 
 export function getStoredUser(): StoredUser | null {
   try {

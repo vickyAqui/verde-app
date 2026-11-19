@@ -4,11 +4,19 @@ const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const { authMiddleware } = require('../middlewares/auth');
 
-const imagekit = new ImageKit({
-  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
-  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
-  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
-});
+const imagekitConfigured = Boolean(
+  process.env.IMAGEKIT_PUBLIC_KEY &&
+  process.env.IMAGEKIT_PRIVATE_KEY &&
+  process.env.IMAGEKIT_URL_ENDPOINT
+);
+
+const imagekit = imagekitConfigured
+  ? new ImageKit({
+      publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+      privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+      urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
+    })
+  : null;
 
 const imagekitRouter = express.Router();
 const imageUpload = multer({
@@ -41,6 +49,9 @@ imagekitRouter.post('/upload', authMiddleware, dailyImageLimit, (req, res, next)
   }
 
   try {
+    if (!imagekit) {
+      return res.status(503).json({ error: 'O envio de imagens não está configurado.' });
+    }
     const uploaded = await imagekit.upload({
       file: req.file.buffer,
       fileName: req.file.originalname,

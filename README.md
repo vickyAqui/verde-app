@@ -1,13 +1,12 @@
 # +Verde
 
-App de mapeamento de áreas não verdes e conexão entre pessoas e ONGs de reflorestamento.
+App de mapeamento de áreas não verdes
 
 # Links
 
 - **Aplicativo (online):** https://verde-app-main.onrender.com/
 - **Tela de cadastro:** https://verde-app-main.onrender.com/cadastro
 - **Painel Web do Admin** https://verde-app-admin.onrender.com/
-- **Painel Web da ONG** https://verde-app-ong.onrender.com/
 - **Repositório (GitHub):** https://github.com/vickyAqui/verde-app
 - **API (backend):** https://verde-app-backend.onrender.com/api
 
@@ -121,7 +120,6 @@ tbl_Usuario       -- idUsuario, nome, email, senha
 tbl_Admin         -- idAdmin, idUsuario (FK)
 tbl_UsuarioComum  -- idUsarioComum, idUsuario (FK), cpf, dataNasc
 tbl_Area          -- idArea, cidade, bairro, rua, statusArea
-tbl_Ongs          -- idOngs, idUsuario (FK), regiao, cnpj, telefone, descricao
 tbl_Projeto       -- id_Projeto, idUsuario (FK), objetivo, descricao, percentualConclusao
 tbl_Denuncias     -- idDenuncias, idUsuario (FK), idArea (FK), titulo, dataDenuncia,
                     statusDenuncia, descricao, foto

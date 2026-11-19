@@ -21,7 +21,7 @@ const MAX_REPORT_PHOTOS = 3;
 const DEN_STATUS = {
   aberta: { label: "Aberta", join: "badge-error" },
   "em tratamento": { label: "Em tratamento", join: "badge-warning" },
-  resolvido: { label: "Resolvida", join: "badge-success" },
+  resolvida: { label: "Resolvida", join: "badge-success" },
 };
 
 function parseAddress(raw: string) {
@@ -207,7 +207,7 @@ export function ReportsScreen() {
           <p className="font-display text-xl font-semibold text-foreground">Denúncia registrada</p>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             Protocolo{" "}
-            <span className="font-semibold text-foreground">#{protocol}</span> encaminhado às ONGs
+            <span className="font-semibold text-foreground">#{protocol}</span>             registrado
             parceiras da região.
           </p>
         </div>
@@ -250,7 +250,7 @@ export function ReportsScreen() {
         {tab === "nova" ? (
           <form onSubmit={onSubmit} className="flex flex-col gap-4 px-4 py-4">
             <p className="text-[13px] leading-relaxed text-muted-foreground">
-              A denúncia é encaminhada diretamente para as ONGs parceiras que atuam em Cidade
+              A denúncia fica registrada na plataforma e pode ser acompanhada em Cidade
               Tiradentes.
             </p>
 

@@ -73,7 +73,7 @@ export function RegisterScreen() {
               Faça parte da rede.
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Crie sua conta para denunciar áreas sem arborização e acompanhar projetos das ONGs
+              Crie sua conta para denunciar áreas sem arborização e acompanhar as áreas cadastradas
               parceiras.
             </p>
           </div>

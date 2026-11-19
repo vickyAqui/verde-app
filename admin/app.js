@@ -221,11 +221,6 @@ const VIEW_META = {
     title: 'Áreas',
     subtitle: 'Regiões monitoradas e seus status.',
   },
-  ongs: {
-    eyebrow: 'Gestão',
-    title: 'ONGs',
-    subtitle: 'Solicitações pendentes e organizações parceiras.',
-  },
   denuncias: {
     eyebrow: 'Gestão',
     title: 'Denúncias',
@@ -252,7 +247,6 @@ function navigate(view) {
   if (view === 'dashboard') loadDashboard();
   if (view === 'usuarios') loadUsuarios();
   if (view === 'areas') loadAreas();
-  if (view === 'ongs') loadOngs();
   if (view === 'denuncias') loadDenuncias();
 }
 
@@ -317,40 +311,6 @@ function renderDonut(denuncias) {
     legend || '<li class="legend-empty">Nenhuma denúncia registrada.</li>';
 }
 
-function renderPendentes(ongs) {
-  const pendentes = ongs.filter((o) => o.statusOng === 'pendente');
-  const resumo = $('#dash-pendentes-resumo');
-  const container = $('#dash-pendentes');
-
-  resumo.textContent = pendentes.length
-    ? `${pendentes.length} aguardando análise`
-    : 'Nenhuma pendência no momento';
-
-  if (!pendentes.length) {
-    container.innerHTML =
-      '<p class="empty-inline">Nenhuma solicitação pendente. Tudo em dia!</p>';
-    return;
-  }
-
-  container.innerHTML = pendentes
-    .slice(0, 4)
-    .map(
-      (ong) => `
-        <div class="pending-item">
-          <span class="avatar">${escapeHtml(initials(ong.nome))}</span>
-          <div class="pending-body">
-            <p class="pending-name">${escapeHtml(ong.nome)}</p>
-            <p class="pending-meta">${escapeHtml(ong.regiao)} · ${escapeHtml(ong.usuario?.nome || 'sem responsável')}</p>
-          </div>
-          <div class="pending-actions">
-            <button type="button" class="pending-action approve" data-action="approve" data-id="${ong.idOng}" data-name="${escapeHtml(ong.nome)}">Aprovar</button>
-            <button type="button" class="pending-action reject" data-action="reject" data-id="${ong.idOng}" data-name="${escapeHtml(ong.nome)}">Reprovar</button>
-          </div>
-        </div>`,
-    )
-    .join('');
-}
-
 function renderUltimas(denuncias) {
   const container = $('#dash-ultimas');
 
@@ -384,7 +344,6 @@ function renderComposicao(stats) {
   const rows = [
     { key: 'admin', label: 'Administradores', value: stats.totalAdmins || 0 },
     { key: 'comum', label: 'Usuários comuns', value: stats.totalComuns || 0 },
-    { key: 'ong', label: 'ONGs parceiras', value: stats.totalONGs || 0 },
   ];
   const max = Math.max(...rows.map((r) => r.value), 1);
 
@@ -416,30 +375,19 @@ async function loadDashboard() {
   }
 
   try {
-    const [dashRes, denRes, ongRes] = await Promise.all([
+    const [dashRes, denRes] = await Promise.all([
       api('/admin/dashboard'),
       api('/admin/denuncias'),
-      api('/admin/ongs'),
     ]);
 
     const stats = dashRes.stats;
     const denuncias = denRes.denuncias || [];
-    const ongs = ongRes.ongs || [];
-    const pendentes = ongs.filter((o) => o.statusOng === 'pendente').length;
     const resolvidas = denuncias.filter(
       (d) => statusKey(d.statusDenuncia) === 'resolvida',
     ).length;
 
     $('#stat-usuarios').textContent = stats.totalUsuarios;
     $('#stat-usuarios-hint').textContent = `${stats.totalAdmins} admin(s) · ${stats.totalComuns} comum(ns)`;
-
-    $('#stat-ongs').textContent = stats.totalONGs;
-    $('#stat-ongs-hint').textContent = pendentes
-      ? `${pendentes} aguardando aprovação`
-      : 'todas aprovadas';
-
-    $('#stat-projetos').textContent = stats.totalProjetos;
-    $('#stat-projetos-hint').textContent = 'em andamento na rede';
 
     $('#stat-areas').textContent = stats.totalAreas;
     $('#stat-areas-hint').textContent = 'mapeadas na rede +Verde';
@@ -455,7 +403,6 @@ async function loadDashboard() {
     statusEl.className = `badge ${stats.denunciasAbertas > 0 ? 'badge-aberta' : 'badge-aprovada'}`;
 
     renderDonut(denuncias);
-    renderPendentes(ongs);
     renderUltimas(denuncias);
     renderComposicao(stats);
   } catch (err) {
@@ -472,44 +419,11 @@ async function loadDashboard() {
   }
 }
 
-/* ---------- Ações de ONG ---------- */
-async function handleOngAction(button, approve) {
-  const id = button.dataset.id;
-  const nome = button.dataset.name || 'esta ONG';
-
-  if (!approve && !confirm(`Reprovar e excluir a solicitação de "${nome}"?`)) {
-    return;
-  }
-
-  const item = button.closest('.pending-item') || button.closest('tr');
-  if (item) {
-    item.querySelectorAll('button').forEach((b) => {
-      b.disabled = true;
-    });
-  }
-  button.textContent = approve ? 'Aprovando...' : 'Reprovando...';
-
-  try {
-    await api(`/admin/ong/${id}/approve`, {
-      method: approve ? 'PUT' : 'DELETE',
-    });
-
-    if (state.view === 'dashboard') loadDashboard();
-    else if (state.view === 'ongs') loadOngs();
-  } catch (err) {
-    alert(err.message);
-    if (state.view === 'ongs') loadOngs();
-    else loadDashboard();
-  }
-}
-
 /* ---------- Usuários ---------- */
 function badgePerfil(valor) {
   const perfil = String(valor || '').toLowerCase();
 
   if (perfil === 'admin') { return '<span class="badge badge-admin">Admin</span>'; }
-
-  if (perfil === 'ong') { return '<span class="badge badge-ong">ONG</span>'; }
 
   if (perfil === 'comum') { return '<span class="badge badge-comum">Comum</span>'; }
 
@@ -549,11 +463,14 @@ async function loadUsuarios() {
 /* ---------- Áreas ---------- */
 function badgeStatus(status) {
   const key = (status || '').toLowerCase().replace(/\s+/g, '-');
-  if (key.includes('identific') || key.includes('em-tratamento')) {
-    const cls = key.includes('tratamento') ? 'badge-tratamento' : 'badge-identificada';
-    return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
-  }
-  return `<span class="badge badge-outros">${escapeHtml(status)}</span>`;
+  const cls = key.includes('reflorest')
+    ? 'badge-reflorestada'
+    : key.includes('tratamento')
+      ? 'badge-tratamento'
+      : key.includes('identific')
+        ? 'badge-identificada'
+        : 'badge-outros';
+  return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
 }
 
 async function loadAreas() {
@@ -586,71 +503,28 @@ async function loadAreas() {
   }
 }
 
-/* ---------- ONGs ---------- */
-function badgeOng(status) {
-  const key = String(status || '').toLowerCase();
-  if (key === 'aprovada') return '<span class="badge badge-aprovada">Aprovada</span>';
-  return '<span class="badge badge-pendente">Pendente</span>';
-}
-
-function ongActions(ong) {
-  if (ong.statusOng !== 'pendente') {
-    return '<span class="cell-muted">—</span>';
-  }
-  return `
-    <div class="row-actions">
-      <button type="button" class="row-action approve" data-action="approve" data-id="${ong.idOng}" data-name="${escapeHtml(ong.nome)}">Aprovar</button>
-      <button type="button" class="row-action reject" data-action="reject" data-id="${ong.idOng}" data-name="${escapeHtml(ong.nome)}">Reprovar</button>
-    </div>`;
-}
-
-async function loadOngs() {
-  const tbody = $('#ongs-tbody');
-  const count = $('#ongs-count');
-  tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Carregando...</td></tr>';
-
-  try {
-    const { ongs } = await api('/admin/ongs');
-    const pendentes = ongs.filter((o) => o.statusOng === 'pendente').length;
-    count.textContent = `${ongs.length} ONG(s) · ${pendentes} pendente(s)`;
-
-    if (!ongs.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhuma ONG encontrada.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = ongs
-      .map((o) => `
-        <tr>
-          <td>${o.idOng}</td>
-          <td>
-            <div class="user-cell">
-              <span class="avatar">${escapeHtml(initials(o.nome))}</span>
-              <div>
-                <strong>${escapeHtml(o.nome)}</strong>
-                <span class="cell-sub">${escapeHtml(o.descricao)}</span>
-              </div>
-            </div>
-          </td>
-          <td>${escapeHtml(o.regiao)}</td>
-          <td>${escapeHtml(o.cnpj)}</td>
-          <td>${escapeHtml(o.telefone)}</td>
-          <td>${o.usuario ? escapeHtml(o.usuario.nome) : '-'}</td>
-          <td>${badgeOng(o.statusOng)}</td>
-          <td>${ongActions(o)}</td>
-        </tr>
-      `)
-      .join('');
-  } catch (err) {
-    count.textContent = 'Não foi possível carregar';
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">${escapeHtml(err.message)}</td></tr>`;
-  }
-}
-
 /* ---------- Denúncias ---------- */
 function badgeDenuncia(status) {
   const key = (status || '').toLowerCase();
   const cls = key === 'aberta' ? 'badge-aberta' : key.includes('tratamento') ? 'badge-tratamento' : key.includes('resolv') ? 'badge-aprovada' : 'badge-outros';
   return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
+}
+
+function denunciaStatusActions(denuncia) {
+  const status = String(denuncia.statusDenuncia || '').toLowerCase();
+  const statusClass = status === 'aberta'
+    ? 'status-aberta'
+    : status === 'em tratamento'
+      ? 'status-tratamento'
+      : status === 'resolvida'
+        ? 'status-resolvida'
+        : '';
+  return `
+    <select class="status-select ${statusClass}" data-denuncia-status="${denuncia.idDenuncia}" aria-label="Alterar status da denúncia ${denuncia.idDenuncia}">
+      <option value="aberta" ${status === 'aberta' ? 'selected' : ''}>Aberta</option>
+      <option value="em tratamento" ${status === 'em tratamento' ? 'selected' : ''}>Em andamento</option>
+      <option value="resolvida" ${status === 'resolvida' ? 'selected' : ''}>Resolvida</option>
+    </select>`;
 }
 
 async function loadDenuncias() {
@@ -675,7 +549,7 @@ async function loadDenuncias() {
         <tr>
           <td>${d.idDenuncia}</td>
           <td>${escapeHtml(d.titulo)}</td>
-          <td>${badgeDenuncia(d.statusDenuncia)}</td>
+          <td>${denunciaStatusActions(d)}</td>
           <td>${d.area ? areaLabel(d.area) : '-'}</td>
           <td>${d.usuario ? escapeHtml(d.usuario.nome) : '-'}</td>
           <td>${formatDate(d.dataDenuncia)}</td>
@@ -704,20 +578,40 @@ document.addEventListener('DOMContentLoaded', () => {
     el.addEventListener('click', () => navigate(el.dataset.view));
   });
 
-  ['#dash-pendentes', '#ongs-tbody'].forEach((sel) => {
-    const el = $(sel);
-    if (!el) return;
-    el.addEventListener('click', (event) => {
-      const btn = event.target.closest('button[data-action]');
-      if (!btn) return;
-      handleOngAction(btn, btn.dataset.action === 'approve');
-    });
-  });
-
   $('#denuncias-tbody').addEventListener('click', (event) => {
     const button = event.target.closest('[data-denuncia-photo]');
     if (!button) return;
     openDenunciaPhotoDialog(button.dataset.denunciaPhoto);
+  });
+
+  $('#denuncias-tbody').addEventListener('change', async (event) => {
+    const select = event.target.closest('[data-denuncia-status]');
+    if (!select) return;
+
+    const id = select.dataset.denunciaStatus;
+    const statusDenuncia = select.value;
+    select.classList.remove('status-aberta', 'status-tratamento', 'status-resolvida');
+    select.classList.add(
+      statusDenuncia === 'aberta'
+        ? 'status-aberta'
+        : statusDenuncia === 'em tratamento'
+          ? 'status-tratamento'
+          : 'status-resolvida',
+    );
+    select.disabled = true;
+
+    try {
+      await api(`/admin/denuncia/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ statusDenuncia }),
+      });
+      loadDenuncias();
+      loadDashboard();
+    } catch (err) {
+      alert(err.message);
+      select.disabled = false;
+      loadDenuncias();
+    }
   });
 
   $('#denuncia-image-close').addEventListener('click', () => {

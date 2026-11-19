@@ -15,7 +15,7 @@ const FILTERS = [
   { key: 'all', label: 'Todas' },
   { key: 'aberta', label: 'Abertas' },
   { key: 'em tratamento', label: 'Em trat.' },
-  { key: 'resolvido', label: 'Resolv.' },
+  { key: 'resolvida', label: 'Resolv.' },
 ];
 
 const CATEGORIES = ['Local sem árvores', 'Corte irregular', 'Poda inadequada', 'Área degradada'];

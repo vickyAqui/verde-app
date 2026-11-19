@@ -106,21 +106,18 @@ export const AREA_STATUS = {
 export const DEN_COLORS = {
   aberta: '#B3402A',
   'em tratamento': '#DB9E36',
-  resolvido: '#2E8B57',
   resolvida: '#2E8B57',
 };
 
 export const DEN_LABELS = {
   aberta: 'Aberta',
   'em tratamento': 'Em tratamento',
-  resolvido: 'Resolvida',
   resolvida: 'Resolvida',
 };
 
 export const DEN_STATUS = {
   aberta: { label: 'Aberta', color: COLORS.error },
   'em tratamento': { label: 'Em tratamento', color: COLORS.warning },
-  resolvido: { label: 'Resolvida', color: COLORS.success },
   resolvida: { label: 'Resolvida', color: COLORS.success },
 };
 

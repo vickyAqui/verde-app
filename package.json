@@ -1,7 +1,7 @@
 {
   "name": "+verde",
   "version": "1.0.0",
-  "description": "App de mapeamento de áreas não verdes e conexão com ONGs de reflorestamento",
+  "description": "App de mapeamento de áreas não verdes",
   "scripts": {
     "dev": "docker compose up",
     "dev:db": "docker compose up -d db",
