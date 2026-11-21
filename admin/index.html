@@ -75,6 +75,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
           <span>Denúncias</span>
         </button>
+        <button class="nav-link" data-view="materiais">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg>
+          <span>Materiais Educativos</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -299,8 +303,131 @@
           </div>
         </div>
       </section>
+
+      <!-- Materiais educativos -->
+      <section id="view-materiais" class="page">
+        <div class="materials-actions">
+          <button type="button" class="btn btn-primary" id="add-article-btn">Adicionar artigo</button>
+          <button type="button" class="btn btn-outline" id="add-video-btn">Adicionar vídeo</button>
+        </div>
+
+        <div class="table-card materials-card">
+          <div class="table-toolbar">
+            <div>
+              <h4>Artigos</h4>
+              <p class="panel-sub" id="articles-count">Carregando...</p>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Título</th>
+                  <th>Categoria</th>
+                  <th>Tempo de leitura</th>
+                  <th>Descrição</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="articles-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="table-card materials-card">
+          <div class="table-toolbar">
+            <div>
+              <h4>Vídeos</h4>
+              <p class="panel-sub" id="videos-count">Carregando...</p>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Título / link</th>
+                  <th>Link</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="videos-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
+
+  <dialog id="article-dialog" class="material-dialog">
+    <form id="article-form">
+      <header class="material-dialog-head">
+        <div>
+          <p class="eyebrow">Novo material</p>
+          <h3>Adicionar artigo</h3>
+        </div>
+        <button type="button" class="dialog-close" data-close-material aria-label="Fechar">×</button>
+      </header>
+      <div class="material-dialog-body">
+        <div class="field">
+          <label for="article-title">Título</label>
+          <input id="article-title" maxlength="100" required />
+        </div>
+        <div class="field">
+          <label for="article-category">Categoria</label>
+          <select id="article-category" required>
+            <option value="" disabled selected>Selecione uma categoria</option>
+            <option value="Benefícios">Benefícios</option>
+            <option value="Preservação">Preservação</option>
+            <option value="Dicas">Dicas</option>
+            <option value="Dados">Dados</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+        <div class="field hidden" id="article-other-category-field">
+          <label for="article-other-category">Outra categoria</label>
+          <input id="article-other-category" maxlength="50" />
+        </div>
+        <div class="field">
+          <label for="article-time">Tempo de leitura (minutos)</label>
+          <input id="article-time" type="number" min="1" max="999" required />
+        </div>
+        <div class="field">
+          <label for="article-description">Descrição</label>
+          <textarea id="article-description" maxlength="255" rows="5" required></textarea>
+        </div>
+        <p id="article-form-error" class="form-error hidden"></p>
+      </div>
+      <footer class="material-dialog-footer">
+        <button type="button" class="btn btn-outline" data-close-material>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="article-submit">Publicar artigo</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="video-dialog" class="material-dialog">
+    <form id="video-form">
+      <header class="material-dialog-head">
+        <div>
+          <p class="eyebrow">Novo material</p>
+          <h3>Adicionar vídeo</h3>
+        </div>
+        <button type="button" class="dialog-close" data-close-material aria-label="Fechar">×</button>
+      </header>
+      <div class="material-dialog-body">
+        <div class="field">
+          <label for="video-link">Link do YouTube</label>
+          <input id="video-link" type="url" placeholder="https://www.youtube.com/watch?v=..." required />
+        </div>
+        <p id="video-form-error" class="form-error hidden"></p>
+      </div>
+      <footer class="material-dialog-footer">
+        <button type="button" class="btn btn-outline" data-close-material>Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="video-submit">Publicar vídeo</button>
+      </footer>
+    </form>
+  </dialog>
 
   <dialog id="denuncia-image-dialog" class="denuncia-image-dialog" aria-label="Imagem ampliada">
     <button id="denuncia-image-close" class="denuncia-image-close" type="button" aria-label="Fechar visualização">×</button>

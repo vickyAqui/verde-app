@@ -77,6 +77,27 @@ const getConteudo = async (req, res) => {
 
 const createConteudo = async (req, res) => {
   try {
+    const tipo = await Tipo_Conteudo.findByPk(req.body.idTipo_Conteudo);
+    if (!tipo) {
+      return res.status(400).json({ error: 'Tipo de conteúdo inválido' });
+    }
+
+    if (tipo.tipo === 'artigo') {
+      const titulo = String(req.body.titulo || '').trim();
+      const descricao = String(req.body.descricao || '').trim();
+      const tempoLeitura = Number(req.body.tempoLeitura);
+      if (!titulo || !descricao || !Number.isInteger(tempoLeitura) || tempoLeitura < 1) {
+        return res.status(400).json({ error: 'Informe título, descrição e tempo de leitura válidos' });
+      }
+    }
+
+    if (tipo.tipo === 'video') {
+      const link = String(req.body.link || '').trim();
+      if (!extractYoutubeVideoId(link)) {
+        return res.status(400).json({ error: 'Informe um link válido de vídeo do YouTube' });
+      }
+    }
+
     const conteudo = await Conteudo.create(req.body);
     await conteudo.reload({ include: [{ model: Tipo_Conteudo, as: 'tipoConteudo' }] });
     return res.status(201).json({ conteudo });

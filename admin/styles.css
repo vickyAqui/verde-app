@@ -35,7 +35,8 @@ h1, h2, h3, h4 {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font-family: inherit;
 }
 
@@ -873,6 +874,143 @@ textarea {
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(12, 51, 34, 0.04);
+}
+
+.materials-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.materials-card + .materials-card {
+  margin-top: 16px;
+}
+
+.materials-card .table-scroll {
+  max-height: 320px;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.field textarea,
+.field select {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+  background: var(--muted-bg);
+  color: var(--text);
+  resize: vertical;
+}
+
+.article-preview {
+  display: block;
+  max-width: 420px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.material-link {
+  color: var(--primary);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.material-link:hover {
+  text-decoration: underline;
+}
+
+.btn-danger {
+  background: #FBEBE7;
+  color: var(--danger);
+  border: 1px solid rgba(179, 64, 42, 0.12);
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
+.btn-danger:hover {
+  background: #F7DDD6;
+}
+
+.material-dialog {
+  width: min(560px, calc(100vw - 32px));
+  margin: auto;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 24px 80px rgba(12, 51, 34, 0.24);
+  scrollbar-color: rgba(95, 107, 100, 0.38) transparent;
+}
+
+.material-dialog::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+
+.material-dialog::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.material-dialog::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(95, 107, 100, 0.38);
+  background-clip: padding-box;
+}
+
+.material-dialog::-webkit-scrollbar-thumb:hover {
+  background: rgba(95, 107, 100, 0.58);
+  background-clip: padding-box;
+}
+
+.material-dialog::backdrop {
+  background: rgba(10, 20, 14, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.material-dialog-head,
+.material-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.material-dialog-head {
+  border-bottom: 1px solid var(--border);
+}
+
+.material-dialog-head h3 {
+  font-size: 22px;
+  color: var(--primary-dark);
+}
+
+.material-dialog-body {
+  padding: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(95, 107, 100, 0.38) transparent;
+}
+
+.material-dialog-footer {
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+}
+
+.dialog-close {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 22px;
+  cursor: pointer;
 }
 
 .table-toolbar {

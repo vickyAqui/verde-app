@@ -226,6 +226,11 @@ const VIEW_META = {
     title: 'Denúncias',
     subtitle: 'Chamados registrados pela comunidade.',
   },
+  materiais: {
+    eyebrow: 'Conteúdo',
+    title: 'Materiais Educativos',
+    subtitle: 'Gerencie artigos e vídeos disponíveis na plataforma.',
+  },
 };
 
 function navigate(view) {
@@ -248,6 +253,7 @@ function navigate(view) {
   if (view === 'usuarios') loadUsuarios();
   if (view === 'areas') loadAreas();
   if (view === 'denuncias') loadDenuncias();
+  if (view === 'materiais') loadMateriais();
 }
 
 /* ---------- Dashboard ---------- */
@@ -564,6 +570,86 @@ async function loadDenuncias() {
   }
 }
 
+/* ---------- Materiais educativos ---------- */
+function isYoutubeLink(value) {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/^www\./, '');
+    const segments = url.pathname.split('/').filter(Boolean);
+    let videoId = null;
+
+    if (host === 'youtu.be') videoId = segments[0] || null;
+    if (['youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host)) {
+      if (url.pathname === '/watch') videoId = url.searchParams.get('v');
+      else if (['embed', 'shorts', 'live'].includes(segments[0])) videoId = segments[1] || null;
+    }
+    return Boolean(videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId));
+  } catch {
+    return false;
+  }
+}
+
+async function loadMateriais() {
+  const articlesBody = $('#articles-tbody');
+  const videosBody = $('#videos-tbody');
+  articlesBody.innerHTML = '<tr class="empty-row"><td colspan="6">Carregando...</td></tr>';
+  videosBody.innerHTML = '<tr class="empty-row"><td colspan="4">Carregando...</td></tr>';
+
+  try {
+    const { conteudos } = await api('/admin/conteudos');
+    const articles = conteudos.filter((item) => item.tipoConteudo?.tipo === 'artigo');
+    const videos = conteudos.filter((item) => item.tipoConteudo?.tipo === 'video');
+
+    $('#articles-count').textContent = `${articles.length} artigo(s) cadastrado(s)`;
+    $('#videos-count').textContent = `${videos.length} vídeo(s) cadastrado(s)`;
+
+    articlesBody.innerHTML = articles.length
+      ? articles.map((article) => {
+          const description = String(article.descricao || '').trim();
+          const preview = description.length > 90 ? `${description.slice(0, 90)}...` : (description || 'Sem descrição');
+          return `
+            <tr>
+              <td>${article.idConteudo}</td>
+              <td><strong>${escapeHtml(article.titulo || 'Sem título')}</strong></td>
+              <td>${escapeHtml(article.categoria || '-')}</td>
+              <td>${article.tempoLeitura ? `${article.tempoLeitura} min` : '-'}</td>
+              <td><span class="article-preview" title="${escapeHtml(description)}">${escapeHtml(preview)}</span></td>
+              <td><button type="button" class="btn btn-danger btn-delete-material" data-delete-material="${article.idConteudo}" data-material-title="${escapeHtml(article.titulo || 'este artigo')}">Excluir</button></td>
+            </tr>`;
+        }).join('')
+      : '<tr class="empty-row"><td colspan="6">Nenhum artigo encontrado.</td></tr>';
+
+    videosBody.innerHTML = videos.length
+      ? videos.map((video) => `
+          <tr>
+            <td>${video.idConteudo}</td>
+            <td>${escapeHtml(video.youtube?.title || 'Vídeo do YouTube')}</td>
+            <td><a class="material-link" href="${escapeHtml(video.link || '#')}" target="_blank" rel="noopener noreferrer">${escapeHtml(video.link || '-')}</a></td>
+            <td><button type="button" class="btn btn-danger btn-delete-material" data-delete-material="${video.idConteudo}" data-material-title="este vídeo">Excluir</button></td>
+          </tr>`).join('')
+      : '<tr class="empty-row"><td colspan="4">Nenhum vídeo encontrado.</td></tr>';
+  } catch (err) {
+    const message = escapeHtml(err.message);
+    $('#articles-count').textContent = 'Não foi possível carregar';
+    $('#videos-count').textContent = 'Não foi possível carregar';
+    articlesBody.innerHTML = `<tr class="empty-row"><td colspan="6">${message}</td></tr>`;
+    videosBody.innerHTML = `<tr class="empty-row"><td colspan="4">${message}</td></tr>`;
+  }
+}
+
+async function getContentType(tipo) {
+  const { tiposConteudo } = await api('/conteudos/tipos');
+  const contentType = tiposConteudo.find((item) => item.tipo === tipo);
+  if (!contentType) throw new Error(`Tipo de conteúdo "${tipo}" não encontrado.`);
+  return contentType.idTipo_Conteudo;
+}
+
+function openMaterialDialog(dialog) {
+  dialog.showModal();
+  const input = dialog.querySelector('input');
+  if (input) input.focus();
+}
+
 /* ---------- Init ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   $('#login-form').addEventListener('submit', handleLogin);
@@ -623,6 +709,127 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#denuncia-image-dialog').addEventListener('cancel', (event) => {
     event.preventDefault();
     closeDenunciaPhotoDialog();
+  });
+
+  $('#add-article-btn').addEventListener('click', () => {
+    $('#article-form').reset();
+    $('#article-other-category-field').classList.add('hidden');
+    $('#article-other-category').required = false;
+    openMaterialDialog($('#article-dialog'));
+  });
+  $('#add-video-btn').addEventListener('click', () => openMaterialDialog($('#video-dialog')));
+
+  $('#article-category').addEventListener('change', (event) => {
+    const otherField = $('#article-other-category-field');
+    const otherInput = $('#article-other-category');
+    const isOther = event.target.value === 'Outro';
+    otherField.classList.toggle('hidden', !isOther);
+    otherInput.required = isOther;
+    if (!isOther) otherInput.value = '';
+  });
+
+  document.querySelectorAll('[data-close-material]').forEach((button) => {
+    button.addEventListener('click', () => button.closest('dialog')?.close());
+  });
+
+  $('#article-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const errorEl = $('#article-form-error');
+    const submit = $('#article-submit');
+    errorEl.classList.add('hidden');
+    submit.disabled = true;
+    submit.textContent = 'Publicando...';
+
+    try {
+      const selectedCategory = $('#article-category').value;
+      if (!selectedCategory) {
+        throw new Error('Selecione uma categoria para o artigo.');
+      }
+      if (selectedCategory === 'Outro' && !$('#article-other-category').value.trim()) {
+        throw new Error('Informe a outra categoria do artigo.');
+      }
+
+      const idTipo = await getContentType('artigo');
+      await api('/admin/conteudos', {
+        method: 'POST',
+        body: JSON.stringify({
+          idTipo_Conteudo: idTipo,
+          categoria: selectedCategory === 'Outro'
+            ? $('#article-other-category').value.trim()
+            : selectedCategory,
+          titulo: $('#article-title').value.trim(),
+          tempoLeitura: Number($('#article-time').value),
+          descricao: $('#article-description').value.trim(),
+        }),
+      });
+      $('#article-form').reset();
+      $('#article-other-category-field').classList.add('hidden');
+      $('#article-other-category').required = false;
+      $('#article-dialog').close();
+      await loadMateriais();
+    } catch (err) {
+      errorEl.textContent = err.message || 'Não foi possível publicar o artigo.';
+      errorEl.classList.remove('hidden');
+    } finally {
+      submit.disabled = false;
+      submit.textContent = 'Publicar artigo';
+    }
+  });
+
+  $('#video-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const errorEl = $('#video-form-error');
+    const submit = $('#video-submit');
+    errorEl.classList.add('hidden');
+    const link = $('#video-link').value.trim();
+
+    if (!isYoutubeLink(link)) {
+      errorEl.textContent = 'Informe um link válido de vídeo do YouTube.';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    submit.disabled = true;
+    submit.textContent = 'Publicando...';
+    try {
+      const idTipo = await getContentType('video');
+      await api('/admin/conteudos', {
+        method: 'POST',
+        body: JSON.stringify({
+          idTipo_Conteudo: idTipo,
+          link,
+        }),
+      });
+      $('#video-form').reset();
+      $('#video-dialog').close();
+      await loadMateriais();
+    } catch (err) {
+      errorEl.textContent = err.message || 'Não foi possível publicar o vídeo.';
+      errorEl.classList.remove('hidden');
+    } finally {
+      submit.disabled = false;
+      submit.textContent = 'Publicar vídeo';
+    }
+  });
+
+  document.querySelectorAll('#articles-tbody, #videos-tbody').forEach((tbody) => {
+    tbody.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-delete-material]');
+      if (!button) return;
+      const id = button.dataset.deleteMaterial;
+      if (!confirm(`Excluir ${button.dataset.materialTitle || 'este material'}?`)) return;
+
+      button.disabled = true;
+      button.textContent = 'Excluindo...';
+      try {
+        await api(`/admin/conteudos/${id}`, { method: 'DELETE' });
+        await loadMateriais();
+      } catch (err) {
+        alert(err.message || 'Não foi possível excluir o material.');
+        button.disabled = false;
+        button.textContent = 'Excluir';
+      }
+    });
   });
 
   if (state.token) {
